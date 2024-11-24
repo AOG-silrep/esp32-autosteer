@@ -565,7 +565,7 @@ void initESPUI ( void ) {
     uint16_t tab = ESPUI.addControl( ControlType::Tab, "Safety", "Safety" );
 
     {
-      uint16_t num = ESPUI.addControl( ControlType::Number, "Max autosteer speed", String( steerConfig.maxAutosteerSpeed ), ControlColor::Peterriver, tab,
+      uint16_t num = ESPUI.addControl( ControlType::Number, "Max engage speed", String( steerConfig.maxAutosteerSpeed ), ControlColor::Peterriver, tab,
       []( Control * control, int id ) {
         steerConfig.maxAutosteerSpeed = control->value.toFloat();
       } );
