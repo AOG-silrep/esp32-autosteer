@@ -76,44 +76,109 @@ void diagnosticWorker1Hz( void* z ) {
       String str;
       str.reserve( 30 );
       if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
-        str = "Canbus WAS: ";
-        str += ( float )steerSetpoints.actualSteerAngle;
-        str += "°";
-      } else if( steerConfig.wheelAngleSensorType == SteerConfig::WheelAngleSensorType::TieRodDisplacement ) {
-        str += ( float )steerSetpoints.actualSteerAngle;
-        str += "°, Raw ";
-        str += ( float )steerSetpoints.wheelAngleRaw;
-        str += "°, Displacement ";
-        str += ( float )steerSetpoints.wheelAngleCurrentDisplacement;
-        str += "mm\n";
-      } else {
-        str += "A/D count: ";
-        str += ( int )steerSetpoints.wheelAngleCounts;
-        str += ", Raw: ";
-        str += ( float )steerSetpoints.wheelAngleRaw;
-        str += "°\nActual: ";
+        str = "Canbus WAS counts: ";
+        str += ( uint16_t )machine.canbusWasCounts;
+        str += "\nActual: ";
         str += ( float )steerSetpoints.actualSteerAngle;
         str += "°, SetPoint: ";
         str += ( float )steerSetpoints.requestedSteerAngle;
         str += "°\n";
-      }
-      if( steerConfig.adsGain == SteerConfig::ADSGain::GAIN_TWOTHIRDS ){
-        str += ( float )( steerSetpoints.wheelAngleCounts * 0.0001875 );
-        str += " volts from WAS";
-      }
-      else if( steerConfig.adsGain == SteerConfig::ADSGain::GAIN_ONE ){
-        str += ( float )( steerSetpoints.wheelAngleCounts * 1.589 * 0.000125 ); // Sensor - 3.3K - ADS - 5.6K - Gnd
-        str += " volts from WAS";
+        time_t elapsed = millis() - machine.lastCanbusWasMillis;
+        if( elapsed < 1000 ){
+          str += ( time_t )elapsed;
+          str += " millis ago";
+        } else {
+          str += ( time_t )elapsed / 1000;
+          str += " seconds ago";
+        }
+      } else {
+        if( steerConfig.wheelAngleSensorType == SteerConfig::WheelAngleSensorType::TieRodDisplacement ) {
+          str += ( float )steerSetpoints.actualSteerAngle;
+          str += "°, Raw ";
+          str += ( float )steerSetpoints.wheelAngleRaw;
+          str += "°, Displacement ";
+          str += ( float )steerSetpoints.wheelAngleCurrentDisplacement;
+          str += "mm\n";
+        } else {
+          str += "A/D count: ";
+          str += ( int )steerSetpoints.wheelAngleCounts;
+          str += ", Raw: ";
+          str += ( float )steerSetpoints.wheelAngleRaw;
+          str += "°\nActual: ";
+          str += ( float )steerSetpoints.actualSteerAngle;
+          str += "°, SetPoint: ";
+          str += ( float )steerSetpoints.requestedSteerAngle;
+          str += "°\n";
+        }
+        if( steerConfig.adsGain == SteerConfig::ADSGain::GAIN_TWOTHIRDS ){
+          str += ( float )( steerSetpoints.wheelAngleCounts * 0.0001875 );
+          str += " volts from WAS";
+        }
+        else if( steerConfig.adsGain == SteerConfig::ADSGain::GAIN_ONE ){
+          str += ( float )( steerSetpoints.wheelAngleCounts * 1.589 * 0.000125 ); // Sensor - 3.3K - ADS - 5.6K - Gnd
+          str += " volts from WAS";
+        }
       }
       ESPUI.updateLabel( labelWheelAngle, str );
     }
     {
       String str;
       str.reserve( 30 );
-      if( steerConfig.steerSwitchIsMomentary == true ){
-        str = "Momentary steer switch: ";
+      if( steerConfig.outputType == SteerConfig::OutputType::Canbus13_19Controller ){
+        str = "Canbus steer state: ";
+        time_t elapsed = millis() - machine.lastCanbusSteeringMillis;
+        if( digitalRead( ( uint8_t )steerConfig.gpioSteerswitch ) == steerConfig.steerswitchActiveLow ){
+          str += "override switch pressed";
+        } else if( elapsed > 500 ){
+          str += " timeout ";
+          str += ( time_t ) elapsed;
+          str += " millis ago";
+        } else {
+          switch( machine.canbusSteeringState ){
+
+            case 0x00: {
+              str += "handwheel activity";
+            }
+            break;
+
+            case 0x10: {
+              str += "ready";
+            }
+            break;
+
+            case 0x14: {
+              str += "engaged";
+            }
+            break;
+
+            case 0x20: {
+              str += "stagnant/turn handwheel";
+            }
+            break;
+
+            case 0x50: {
+              str += "no message from steering controller";
+            }
+            break;
+
+            case 0x60: {
+              str += "not initialized";
+            }
+            break;
+
+            default: {
+              str += "undefined value ";
+              str += machine.canbusSteeringState;
+            }
+            break;
+          }
+        }
       } else {
-        str = "Maintained steer switch: ";
+        if( steerConfig.steerSwitchIsMomentary == true ){
+          str = "Momentary steer switch: ";
+        } else {
+          str = "Maintained steer switch: ";
+        }
         str += ( bool )( digitalRead( steerConfig.gpioSteerswitch ) == steerConfig.steerswitchActiveLow ) ? "On" : "Off" ;
       }
       if( steerConfig.workswitchType > SteerConfig::WorkswitchType::Gpio ){ // Canbus function
@@ -159,7 +224,7 @@ void diagnosticWorker1Hz( void* z ) {
           str += ", enabled: ";
           str += ( bool )steerSetpoints.enabled ? "Yes" : "No" ;
           str += ", output: ";
-          str += ( uint8_t )machine.valveOutput ;
+          str += ( uint16_t )machine.valveOutput ;
           labelStatusOutputHandle->color = ControlColor::Emerald;
           ESPUI.updateLabel( labelStatusOutput, str );
         }
@@ -176,7 +241,7 @@ void diagnosticWorker1Hz( void* z ) {
           str += ", enabled: ";
           str += ( bool )steerSetpoints.enabled ? "Yes" : "No" ;
           str += ", output: ";
-          str += ( uint8_t )machine.valveOutput;
+          str += ( uint16_t )machine.valveOutput;
           labelStatusOutputHandle->color = ControlColor::Emerald;
           ESPUI.updateLabel( labelStatusOutput, str );
         }
@@ -193,7 +258,7 @@ void diagnosticWorker1Hz( void* z ) {
           str += ", enabled: ";
           str += ( bool )steerSetpoints.enabled ? "Yes" : "No" ;
           str += ",\n output: ";
-          str += ( uint8_t )machine.valveOutput ;
+          str += ( uint16_t )machine.valveOutput ;
           str += ", dither: ";
           str += ( float )ditherAmount ;
           labelStatusOutputHandle->color = ControlColor::Emerald;
@@ -212,7 +277,7 @@ void diagnosticWorker1Hz( void* z ) {
           str += ", enabled: ";
           str += ( bool )steerSetpoints.enabled ? "Yes" : "No" ;
           str += ", output: ";
-          str += ( uint8_t )machine.valveOutput ;
+          str += ( uint16_t )machine.valveOutput ;
           labelStatusOutputHandle->color = ControlColor::Emerald;
           ESPUI.updateLabel( labelStatusOutput, str );
         }
@@ -229,7 +294,24 @@ void diagnosticWorker1Hz( void* z ) {
           str += ", enabled: ";
           str += ( bool )steerSetpoints.enabled ? "Yes" : "No" ;
           str += ", output: ";
-          str += ( uint8_t )machine.valveOutput ;
+          str += ( uint16_t )machine.valveOutput ;
+          labelStatusOutputHandle->color = ControlColor::Emerald;
+          ESPUI.updateLabel( labelStatusOutput, str );
+        }
+        break;
+
+        case SteerConfig::OutputType::Canbus13_19Controller: {
+          Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );
+          String str;
+          str.reserve( 30 );
+          str = "Canbus 13/19 Controller, SetPoint: ";
+          str += ( float )steerSetpoints.requestedSteerAngle;
+          str += "°,\ntimeout: ";
+          str += ( bool )( steerSetpoints.lastPacketReceived < safety.timeoutPoint ) ? "Yes" : "No" ;
+          str += ", enabled: ";
+          str += ( bool )steerSetpoints.enabled ? "Yes" : "No" ;
+          str += ", output: ";
+          str += ( double )steerSetpoints.pidOutput ;
           labelStatusOutputHandle->color = ControlColor::Emerald;
           ESPUI.updateLabel( labelStatusOutput, str );
         }

@@ -37,8 +37,12 @@ void addWasInputSelection( uint16_t parent ) {
   ESPUI.addControl( ControlType::Option, "ADS1115 A0 Single", String( ( uint8_t )SteerConfig::AnalogIn::ADS1115A0Single ), ControlColor::Alizarin, parent );
   ESPUI.addControl( ControlType::Option, "ADS1115 A1 Single", String( ( uint8_t )SteerConfig::AnalogIn::ADS1115A1Single ), ControlColor::Alizarin, parent );
   ESPUI.addControl( ControlType::Option, "ADS1115 A0/A1 Differential", String( ( uint8_t )SteerConfig::AnalogIn::ADS1115A0A1Differential ), ControlColor::Alizarin, parent );
-  ESPUI.addControl( ControlType::Option, "Deere Variable Duty Cycle", String( ( uint16_t )SteerConfig::AnalogIn::JDVariableDuty ), ControlColor::Alizarin, parent );}
-
+  ESPUI.addControl( ControlType::Option, "Deere Variable Duty Cycle", String( ( uint16_t )SteerConfig::AnalogIn::JDVariableDuty ), ControlColor::Alizarin, parent );
+  if( steerConfig.canBusEnabled ) {
+      ESPUI.addControl( ControlType::Option, "Canbus: Valtra-Massey-Challenger", String( ( uint16_t )SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ), ControlColor::Alizarin, parent );
+  }
+}
+  
 void initESPUI ( void ) {
 
   labelLoad = ESPUI.addControl( ControlType::Label, "Load:", "", ControlColor::Turquoise );
@@ -102,7 +106,7 @@ void initESPUI ( void ) {
     uint16_t tab = ESPUI.addControl( ControlType::Tab, "Status", "Status" );
 
     labelStatusOutput = ESPUI.addControl( ControlType::Label, "Output:", "No Output configured", ControlColor::Turquoise, tab );
-    labelStatusAdc = ESPUI.addControl( ControlType::Label, "ADC:", "No ADC configured", ControlColor::Turquoise, tab );
+    labelStatusAdc = ESPUI.addControl( ControlType::Label, "WAS:", "No WAS configured", ControlColor::Turquoise, tab );
     labelStatusCan = ESPUI.addControl( ControlType::Label, "CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
     String buildDate = String(__DATE__);
     buildDate += String(" ");
@@ -285,13 +289,16 @@ void initESPUI ( void ) {
       uint16_t sel = ESPUI.addControl( ControlType::Select, "Wheel Angle Sensor*", String( ( int )steerConfig.wheelAngleInput ), ControlColor::Wetasphalt, tab,
       []( Control * control, int id ) {
         steerConfig.wheelAngleInput = ( SteerConfig::AnalogIn )control->value.toInt();
+        if( steerConfig.wheelAngleInput >= SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
+          steerConfig.wheelAngleSensorType = SteerConfig::WheelAngleSensorType::WheelAngle; // arm linkage not applicable for Canbus
+        }        
         setResetButtonToRed();
       } );
       ESPUI.addControl( ControlType::Option, "None", "0", ControlColor::Alizarin, sel );
       addWasInputSelection( sel );
     }
 
-    {
+    if( machine.canbusSteeringActive != true ){
       uint16_t sel = ESPUI.addControl( ControlType::Select, "Wheel Angle Sensor Type*", String( ( int )steerConfig.wheelAngleSensorType ), ControlColor::Wetasphalt, tab,
       []( Control * control, int id ) {
         steerConfig.wheelAngleSensorType = ( SteerConfig::WheelAngleSensorType )control->value.toInt();
@@ -439,6 +446,9 @@ void initESPUI ( void ) {
       ESPUI.addControl( ControlType::Option, "Hydraulic: IBT 2 + PWM 2-Coil Valve", "3", ControlColor::Alizarin, sel );
       ESPUI.addControl( ControlType::Option, "Hydraulic: IBT 2 + Danfoss Valve PVE A/H/M", "4", ControlColor::Alizarin, sel );
       ESPUI.addControl( ControlType::Option, "Hydraulic: IBT 2 + Bang Bang Valve", "5", ControlColor::Alizarin, sel );
+      if( steerConfig.canBusEnabled ) {
+        ESPUI.addControl( ControlType::Option, "Canbus: 13/19 Controller", "6", ControlColor::Alizarin, sel );
+      }
     }
 
     ESPUI.addControl( ControlType::Switcher, "Invert Output", steerConfig.invertOutput ? "1" : "0", ControlColor::Peterriver, tab,

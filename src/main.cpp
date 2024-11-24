@@ -108,6 +108,10 @@ void setup( void ) {
   * for example begin("ESPUI Control", "username", "password")
   */
 
+  if( steerConfig.outputType >= SteerConfig::OutputType::Canbus13_19Controller ||
+      steerConfig.wheelAngleInput >= SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
+    machine.canbusSteeringActive = true;
+  }
   initESPUI();
 
   {
@@ -122,10 +126,9 @@ void setup( void ) {
   if( steerConfig.enableOTA ) {
     AsyncElegantOTA.begin( ESPUI.server );
   }
-
   initIdleStats();
-  initSensors();
   initCan();
+  initSensors();
   initAutosteer();
   initDiagnostics();
 

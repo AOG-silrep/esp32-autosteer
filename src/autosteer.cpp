@@ -178,12 +178,25 @@ void autosteerWorker100Hz( void* z ) {
              steerSetpoints.speed < steerConfig.minAutosteerSpeed ) {
       
       switch( initialisation.outputType ) {
+        case SteerConfig::OutputType::Canbus13_19Controller: {
+          pidOutputTmp = 0;
+          ledcWrite( 0, 0 );
+          ledcWrite( 1, 0 );
+          ledcWrite( 2, 0 );
+          digitalWrite( steerConfig.gpioEn, LOW );
+          machine.valveOutput = machine.canbusWasCounts;
+          steerSetpoints.pidOutput = pidOutputTmp;
+        }
+        break;
+
         case SteerConfig::OutputType::HydraulicDanfoss: {
           pidOutputTmp = 128;
           ledcWrite( 0, 128 );
           ledcWrite( 1, 0 );
           ledcWrite( 2, 0 );
           digitalWrite( steerConfig.gpioEn, LOW );
+          machine.valveOutput = pidOutputTmp;
+          steerSetpoints.pidOutput = pidOutputTmp;
         }
         break;
 
@@ -193,6 +206,8 @@ void autosteerWorker100Hz( void* z ) {
           ledcWrite( 1, 0 );
           ledcWrite( 2, 0 );
           digitalWrite( steerConfig.gpioEn, LOW );
+          machine.valveOutput = pidOutputTmp;
+          steerSetpoints.pidOutput = pidOutputTmp;
         }
         break;
       }
@@ -243,6 +258,8 @@ void autosteerWorker100Hz( void* z ) {
             ledcWrite( 2, -pidOutputTmp );
           }
           digitalWrite( steerConfig.gpioEn, HIGH );
+          machine.valveOutput = pidOutputTmp;
+          steerSetpoints.pidOutput = pidOutputTmp;
         }
         break;
 
@@ -256,6 +273,8 @@ void autosteerWorker100Hz( void* z ) {
 
           ledcWrite( 0, pidOutputTmp );
           ledcWrite( 2, 255 );
+          machine.valveOutput = pidOutputTmp;
+          steerSetpoints.pidOutput = pidOutputTmp;
         }
         break;
 
@@ -265,6 +284,17 @@ void autosteerWorker100Hz( void* z ) {
           ledcWrite( 0, pidOutputTmp );
           ledcWrite( 1, 255 );
           ledcWrite( 2, 255 );
+          machine.valveOutput = pidOutputTmp;
+          steerSetpoints.pidOutput = pidOutputTmp;
+        }
+        break;
+
+        case SteerConfig::OutputType::Canbus13_19Controller: {
+          ledcWrite( 0, abs( pidOutputTmp ));
+          ledcWrite( 1, 0 );
+          ledcWrite( 2, 0 );
+          machine.valveOutput = machine.canbusWasCounts - pidOutputTmp; //send current position of wheels minus PID output
+          steerSetpoints.pidOutput = pidOutputTmp;
         }
         break;
 
@@ -274,7 +304,6 @@ void autosteerWorker100Hz( void* z ) {
       }
       digitalWrite( steerConfig.gpioEn, HIGH );
       digitalWrite( steerConfig.gpioSteerLED, HIGH );
-      machine.valveOutput = pidOutputTmp;
     }
 
     static uint8_t loopCounter = 0;
@@ -382,6 +411,7 @@ void autosteerWorker100Hz( void* z ) {
     vTaskDelayUntil( &xLastWakeTime, xFrequency );
   }
 }
+
 void autosteerSwitchesWorker1000Hz( void* z ) {
   constexpr TickType_t xFrequency = 1;
   TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -625,6 +655,11 @@ void initAutosteer() {
       }
       break;
 
+      case SteerConfig::OutputType::Canbus13_19Controller: {
+        initialisation.outputType = SteerConfig::OutputType::Canbus13_19Controller;
+      }
+      break;
+
       default:
         break;
 
@@ -639,7 +674,9 @@ void initAutosteer() {
   attachInterrupt( steerConfig.gpioDisengage, disengageIsr, CHANGE);
 
   xTaskCreate( autosteerWorker100Hz, "autosteerWorker", 3096, NULL, 3, NULL );
-  xTaskCreate( autosteerSwitchesWorker1000Hz, "autosteerSwitchesWorker", 3096, NULL, 3, NULL );
+  if( machine.canbusSteeringActive == false ){
+    xTaskCreate( autosteerSwitchesWorker1000Hz, "autosteerSwitchesWorker", 3096, NULL, 3, NULL );
+  }
 
   if( steerConfig.outputType == SteerConfig::OutputType::HydraulicPwm2Coil ) {
     xTaskCreate( ditherWorker10HZ, "ditherWorker10HZ", 1024, NULL, 1, NULL );

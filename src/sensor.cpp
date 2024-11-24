@@ -96,9 +96,14 @@ void sensorWorker100HzPoller( void* z ) {
       }
       break;
 
+      case SteerConfig::AnalogIn::CanbusValtraMasseyChallenger: {
+        wheelAngleTmp = machine.canbusWasCounts;
+      }
+      break;
+
       default:
         break;
-      }
+    }
 
     {
       steerSetpoints.wheelAngleCounts = wheelAngleTmp;
@@ -177,9 +182,14 @@ void initSensors() {
   Control* handle = ESPUI.getControl( labelStatusAdc );
   String str;
   str.reserve( 30 );
-  // initialise ads1115 everytime, even if not available (no answer in the init -> just sending)
-  ads.setGain( (adsGain_t)steerConfig.adsGain );
-  if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::JDVariableDuty ){
+
+  if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
+
+    str = "Canbus: Valtra-Massey-Challenger WAS initialized";
+    handle->color = ControlColor::Emerald;
+    ESPUI.updateLabel( labelStatusAdc, str );
+  }
+  else if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::JDVariableDuty ){
     pinMode( steerConfig.gpioWASPulse, INPUT );
     attachInterrupt( steerConfig.gpioWASPulse, DeereVariableDutyWasIsr, CHANGE );
 
@@ -189,6 +199,7 @@ void initSensors() {
 
   } else {
     
+    ads.setGain( (adsGain_t)steerConfig.adsGain );
     // ads.setGain(GAIN_TWOTHIRDS);   // 2/3x gain +/- 6.144V  1 bit = 3mV      0.1875mV (default)  
     // ads.setGain(GAIN_ONE);        // 1x gain   +/- 4.096V  1 bit = 2mV      0.125mV
     // ads.setGain(GAIN_TWO);        // 2x gain   +/- 2.048V  1 bit = 1mV      0.0625mV

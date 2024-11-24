@@ -21,7 +21,6 @@
 // SOFTWARE.
 
 #include <ESPUI.h>
-#include <ESP32CAN.h>
 #include <CAN_config.h>
 
 #include "main.hpp"
@@ -30,9 +29,6 @@
 CAN_device_t CAN_cfg;
 
 constexpr uint8_t rxQueueSize = 10;
-
-constexpr uint8_t  IsobusPgPos   = 8;
-constexpr uint32_t IsobusPgnMask = 0x03FFFF;
 
 constexpr uint16_t j1939PgnEEC1 = 61444;
 constexpr uint16_t j1939PgnWBSD = 65096;
@@ -43,9 +39,14 @@ constexpr uint16_t j1939PgnFHS = 65094;
 constexpr uint16_t j1939PgnRPTO = 65091;
 constexpr uint16_t j1939PgnFPTO = 65092;
 
+constexpr uint16_t j1939PgnVMCWas = 44032;
+constexpr uint16_t j1939PgnVMCAutosteer = 61184;
+
+bool readyToDisengage;
+
 // see https://gurtam.com/files/ftp/CAN/ (especialy J1939.zip)
 
-void canWorker10Hz( void* z ) {
+void canReceiver10Hz( void* z ) {
   constexpr TickType_t xFrequency = 100;
   TickType_t xLastWakeTime = xTaskGetTickCount();
 
@@ -57,7 +58,12 @@ void canWorker10Hz( void* z ) {
       lastCanbusMsgMillis = millis();
       if( canFrame.FIR.B.FF == CAN_frame_ext ) {
 
-        uint16_t pgn = ( canFrame.MsgID >> IsobusPgPos ) & IsobusPgnMask;
+        uint16_t pgn = ( canFrame.MsgID >> 8 ) & 0x03FFFF;
+        uint16_t pduFormat = ( pgn >> 8 ) & 0xFF;  // PDU format is bits 6-13
+        if( pduFormat < 240 ){   // if PDU format is less than 240, we subtract the PDU specific address
+          uint8_t pduSpecific = pgn & 0xFF;
+          pgn = pgn - pduSpecific;
+        }
 
         switch( pgn ) {
 
@@ -67,7 +73,7 @@ void canWorker10Hz( void* z ) {
           }
           break;
 
-          // Wheel-based Speed and Distance
+             // Wheel-based Speed and Distance
           case j1939PgnWBSD: {
             steerCanData.speed = ( canFrame.data.u8[1] << 8 | canFrame.data.u8[0] ) / 1000 * 3.6;
           }
@@ -94,7 +100,38 @@ void canWorker10Hz( void* z ) {
           // Secondary or Front Power Take off Output Shaft
           case j1939PgnFPTO: {
             steerCanData.frontPtoRpm = ( canFrame.data.u8[1] << 8 | canFrame.data.u8[0] ) / 8;
+          }
+          break;
 
+          case j1939PgnVMCWas: { //0x0CAC1C13
+            if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){      
+              machine.canbusWasCounts = (( canFrame.data.u8[1] << 8 ) + canFrame.data.u8[0] );  // CAN Buf[1]*256 + CAN Buf[0] = CAN Est Curve
+              machine.lastCanbusWasMillis = millis();
+            }
+            machine.canbusSteeringState = ( canFrame.data.u8[2] );
+            machine.lastCanbusSteeringMillis = millis();
+            if( digitalRead( ( uint8_t )steerConfig.gpioSteerswitch ) == steerConfig.steerswitchActiveLow ){
+              if( machine.canbusSteeringState == 0x10 ){ //only try to engage when machine is ready, to avoid race conditions
+                machine.steeringEnabled = true;
+              }
+            }
+            if( machine.canbusSteeringState == 0x14 ){
+              readyToDisengage = true; // we need the steer enabled confirmation from the machine before disengaging again
+            } else if( readyToDisengage == true ) {
+              machine.steeringEnabled = false;
+              readyToDisengage = false;
+            }
+          }
+          break;
+
+          case j1939PgnVMCAutosteer:{ //0x18EF1C00
+            if(( canFrame.data.u8[0] ) == 15 && ( canFrame.data.u8[1] ) == 96 && ( canFrame.data.u8[2] ) == 1 ){
+              if( machine.canbusSteeringState == 0x10 ){ //only try to engage when machine is ready, to avoid race conditions
+                machine.steeringEnabled = true;
+              }
+            } else if(( canFrame.data.u8[0] ) == 15 && ( canFrame.data.u8[1] ) == 96 && ( canFrame.data.u8[2] ) == 0 ){
+              machine.steeringEnabled = false;
+            }
           }
           break;
         }
@@ -143,6 +180,36 @@ void canWorker10Hz( void* z ) {
   }
 }
 
+void canSender10Hz( void* z ) {
+  constexpr TickType_t xFrequency = 100;
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+
+  for( ;; ) {
+    if( millis() - machine.lastCanbusSteeringMillis > 500 ){
+      machine.steeringEnabled = false;
+    }
+    CAN_frame_t canFrame;
+    canFrame.MsgID = 0x0CAD131C;
+    canFrame.FIR.B.FF = CAN_frame_ext;
+    canFrame.FIR.B.DLC = 8;
+    canFrame.data.u8[0] = ( uint8_t ) machine.valveOutput;
+    canFrame.data.u8[1] = ( uint8_t ) ( machine.valveOutput >> 8 );
+    if( steerSetpoints.enabled == true && steerSetpoints.speed > steerConfig.minAutosteerSpeed ){
+      canFrame.data.u8[2] = 253;
+    } else {
+      canFrame.data.u8[2] = 252;
+    }
+    canFrame.data.u8[3] = 0;
+    canFrame.data.u8[4] = 0;
+    canFrame.data.u8[5] = 0;
+    canFrame.data.u8[6] = 0;
+    canFrame.data.u8[7] = 0;
+    ESP32Can.CANWriteFrame( &canFrame );
+
+    vTaskDelayUntil( &xLastWakeTime, xFrequency );
+  }
+}
+
 void initCan() {
   if( steerConfig.canBusEnabled ) {
     CAN_cfg.speed = ( CAN_speed_t )steerConfig.canBusSpeed;
@@ -151,7 +218,28 @@ void initCan() {
     CAN_cfg.rx_queue = xQueueCreate( rxQueueSize, sizeof( CAN_frame_t ) );
     // Init CAN Module
     ESP32Can.CANInit();
-
-    xTaskCreate( canWorker10Hz, "canWorker", 2048, NULL, 5, NULL );
+    CAN_frame_t msgISO;
+    bool claimAddress = false;
+    if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
+      msgISO.MsgID = 0x18EEFF1C;
+      claimAddress = true;
+    }
+    if( claimAddress ){
+      msgISO.FIR.B.FF = CAN_frame_ext;
+      msgISO.FIR.B.DLC = 8;
+      msgISO.data.u8[0] = 0x00;
+      msgISO.data.u8[1] = 0x00;
+      msgISO.data.u8[2] = 0xC0;
+      msgISO.data.u8[3] = 0x0C;
+      msgISO.data.u8[4] = 0x00;
+      msgISO.data.u8[5] = 0x17;
+      msgISO.data.u8[6] = 0x02;
+      msgISO.data.u8[7] = 0x20;
+      ESP32Can.CANWriteFrame( &msgISO );
+    }
+    xTaskCreate( canReceiver10Hz, "canReceiver", 2048, NULL, 5, NULL );
+    if( steerConfig.outputType >= SteerConfig::OutputType::Canbus13_19Controller ){
+      xTaskCreate( canSender10Hz, "canSender", 2048, NULL, 5, NULL );
+    }
   }
 }

@@ -31,6 +31,7 @@
 #include <AsyncUDP.h>
 
 #include <ESPUI.h>
+#include <ESP32CAN.h>
 
 #include <Wire.h>
 
@@ -79,7 +80,7 @@ struct Machine {
   bool steeringEnabled = false; // ESP32 internal steering state > sent to AOG
   bool workswitchState = false; // current state of workswitch
   uint8_t canbusSteeringState = 0; // machine canbus steering state (receive only)
-  uint8_t valveOutput; // output of the pid controller, after valve specific processing
+  uint16_t valveOutput; // output of the pid controller, after valve specific processing
   uint16_t canbusWasCounts; // Wheel Angle Sensor counts from canbus
   uint16_t handwheelPulseCount; // handwheel encoder counts
   uint16_t DeereDutyCycle; // duty cycle of Deere variable duty PWM disengage sensor
@@ -87,7 +88,8 @@ struct Machine {
   uint16_t steerMotorCurrent; // steering motor current
   double steerSupplyVoltage; // voltage from machine, also feeds the steering valve
   float wheelAngle; // wheel angle in degrees
-  time_t lastCanbusSteeringMillis; // last time a CANBUS message was received
+  time_t lastCanbusSteeringMillis; // last time a CANBUS steering message was received
+  time_t lastCanbusWasMillis; // last time a WAS CANBUS message was received
 };
 extern Machine machine;
 
@@ -98,7 +100,11 @@ struct SteerConfig {
     ADS1115A0Single         = 100,
     ADS1115A1Single         = 101,
     ADS1115A0A1Differential = 200,
-    JDVariableDuty          = 300
+    JDVariableDuty          = 300,
+    CanbusValtraMasseyChallenger = 400,
+    CanbusCNH               = 401,
+    CanbusFendt             = 402,
+    CanbusJCB               = 403
   };
 
   enum class SpeedUnits : int8_t {
@@ -129,10 +135,11 @@ struct SteerConfig {
   enum class OutputType : uint8_t {
     None = 0,
     SteeringMotorCytron = 1,
-    SteeringMotorIBT2,
-    HydraulicPwm2Coil,
-    HydraulicDanfoss,
-    HydraulicBangBang
+    SteeringMotorIBT2 = 2,
+    HydraulicPwm2Coil = 3,
+    HydraulicDanfoss = 4,
+    HydraulicBangBang = 5,
+    Canbus13_19Controller
   } outputType = OutputType::None;
 
   double pwmFrequency = 1000;
@@ -155,13 +162,13 @@ struct SteerConfig {
   uint8_t dither = 0;
 
   enum class WorkswitchType : uint8_t {
-    None = 0,
-    Gpio,
-    RearHitchPosition,
-    FrontHitchPosition,
-    RearPtoRpm,
-    FrontPtoRpm,
-    MotorRpm
+    None                    = 0,
+    Gpio                    = 1,
+    RearHitchPosition       = 2,
+    FrontHitchPosition      = 3,
+    RearPtoRpm              = 4,
+    FrontPtoRpm             = 5,
+    MotorRpm                = 6
   } workswitchType = WorkswitchType::None;
   uint8_t gpioWorkswitch = 2;
   uint8_t gpioWorkLED = 14;
@@ -279,6 +286,7 @@ struct SteerSetpoints {
   double wheelAngleCounts = 0;
   double wheelAngleCurrentDisplacement = 0;
   double wheelAngleRaw = 0;
+  double pidOutput = 0;
   float correction = 0;
 
   time_t lastPacketReceived = 0;
