@@ -179,6 +179,9 @@ void initESPUI ( void ) {
     ESPUI.addControl( ControlType::Switcher, "CAN Bus Enabled*", steerConfig.canBusEnabled ? "1" : "0", ControlColor::Wetasphalt, tab,
     []( Control * control, int id ) {
       steerConfig.canBusEnabled = control->value.toInt() == 1;
+      if( steerConfig.canBusEnabled ){
+        ESP32Can.CANStop();
+      }
       setResetButtonToRed();
     } );
 
