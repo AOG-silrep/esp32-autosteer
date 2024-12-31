@@ -27,6 +27,7 @@
 
 #include "main.hpp"
 #include "jsonFunctions.hpp"
+#include "driver/gpio.h"
 
 #include <string>       // std::string
 #include <sstream>      // std::stringstream
@@ -520,20 +521,17 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
   }
 }
 
-void IRAM_ATTR disengageIsr() {
+static void IRAM_ATTR disengageIsr( void* arg ) {
     // interrupt service routine for the steering wheel
     static time_t disengageActivityMicros = micros();
-    disengageState = digitalRead( ( uint8_t ) steerConfig.gpioDisengage );
-    if( disengagePrevJdState != disengageState ){
-      disengagePrevJdState = disengageState;
-      if( disengageState == LOW ){
-        onTime = micros() - disengageActivityMicros;
-      } else {
-        offTime = micros() - disengageActivityMicros;
-      }
-      disengageActivityMicros = micros();
-      disengageActivityMillis = millis();
+    disengageState = digitalRead(( gpio_num_t )( int )arg );
+    if( disengageState == LOW ){
+      onTime = micros() - disengageActivityMicros;
+    } else {
+      offTime = micros() - disengageActivityMicros;
     }
+    disengageActivityMicros = micros();
+    disengageActivityMillis = millis();
 }
 
 void initAutosteer() {
@@ -669,9 +667,15 @@ void initAutosteer() {
   pinMode( steerConfig.gpioWorkswitch, INPUT_PULLUP );
   pinMode( steerConfig.gpioWorkLED, OUTPUT );
   pinMode( steerConfig.gpioSteerswitch, INPUT_PULLUP );
-  pinMode( steerConfig.gpioDisengage, INPUT );
 
-  attachInterrupt( steerConfig.gpioDisengage, disengageIsr, CHANGE);
+  #define DISENGAGE_GPIO ( gpio_num_t ) steerConfig.gpioDisengage
+  gpio_pad_select_gpio( DISENGAGE_GPIO );
+  gpio_set_direction( DISENGAGE_GPIO, GPIO_MODE_INPUT );
+  gpio_pulldown_dis( DISENGAGE_GPIO );
+  gpio_pullup_dis( DISENGAGE_GPIO );
+  gpio_set_intr_type( DISENGAGE_GPIO, GPIO_INTR_ANYEDGE );
+  gpio_install_isr_service( ESP_INTR_FLAG_EDGE );
+  gpio_isr_handler_add(( gpio_num_t ) DISENGAGE_GPIO, disengageIsr, ( void* ) DISENGAGE_GPIO );
 
   xTaskCreate( autosteerWorker100Hz, "autosteerWorker", 3096, NULL, 3, NULL );
   if( machine.canbusSteeringActive == false ){
