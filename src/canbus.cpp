@@ -27,6 +27,7 @@
 #include "jsonFunctions.hpp"
 
 CAN_device_t CAN_cfg;
+AsyncUDP udpHardwareMessage;
 
 constexpr uint8_t rxQueueSize = 10;
 
@@ -44,8 +45,62 @@ constexpr uint16_t j1939PgnVMCAutosteer = 61184;
 
 bool readyToDisengage;
 
-// see https://gurtam.com/files/ftp/CAN/ (especialy J1939.zip)
+void showCanbusStateOnAOG( uint8_t state ){
+  switch( state ){
+    case 0x00: {
+      uint8_t data[26] = {0x80, 0x81, 0x7F, 0xDD, 20, 3, 1, 0x52, 0x65, 0x6C, 0x65, 0x61, 0x73, 0x65, 0x20, 0x68, 0x61, 0x6E, 0x64, 0x77, 0x68, 0x65, 0x65, 0x6C, 0x00}; //Release handwheel
+      int CRCtoAOG = 0;
+      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
+        CRCtoAOG = ( CRCtoAOG + data[ i ] );
+      }
+      data[ sizeof( data ) - 1 ] = CRCtoAOG;
+      udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+    }
+    break;
+    case 0x20: {
+      uint8_t data[22] = {0x80, 0x81, 0x7F, 0xDD, 16, 3, 1, 0x54, 0x75, 0x72, 0x6E, 0x20, 0x68, 0x61, 0x6E, 0x64, 0x77, 0x68, 0x65, 0x65, 0x6C}; //Turn handwheel
+      int CRCtoAOG = 0;
+      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
+        CRCtoAOG = ( CRCtoAOG + data[ i ] );
+      }
+      data[ sizeof( data ) - 1 ] = CRCtoAOG;
+      udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+    }
+    break;
+    case 0x50: {
+      uint8_t data[34] = {0x80, 0x81, 0x7F, 0xDD, 28, 3, 1, 0x4E, 0x6F, 0x20, 0x43, 0x61, 0x6E, 0x62, 0x75, 0x73, 0x20, 0x6F, 0x75, 0x74, 0x70, 0x75, 0x74, 0x20, 0x66, 0x72, 0x6F, 0x6D, 0x20, 0x41, 0x4F, 0x47, 0x20}; //No Canbus output from AOG
+      int CRCtoAOG = 0;
+      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
+        CRCtoAOG = ( CRCtoAOG + data[ i ] );
+      }
+      data[ sizeof( data ) - 1 ] = CRCtoAOG;
+      udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+    }
+    break;
+    case 0x60: {
+      uint8_t data[26] = {0x80, 0x81, 0x7F, 0xDD, 20, 3, 1, 0x41, 0x75, 0x74, 0x6F, 0x73, 0x74, 0x65, 0x65, 0x72, 0x20, 0x64, 0x69, 0x73, 0x61, 0x62, 0x6C, 0x65, 0x64}; //Autosteer disabled
+      int CRCtoAOG = 0;
+      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
+        CRCtoAOG = ( CRCtoAOG + data[ i ] );
+      }
+      data[ sizeof( data ) - 1 ] = CRCtoAOG;
+      udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+    }
+    break;
+    default: {
+      uint8_t data[20] = {0x80, 0x81, 0x7F, 0xDD, 16, 3, 1, 0x55, 0x6E, 0x6B, 0x6E, 0x6F, 0x77, 0x6E, 0x20, 0x65, 0x72, 0x72, 0x6F, 0x72}; //Unknown error
+      int CRCtoAOG = 0;
+      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
+        CRCtoAOG = ( CRCtoAOG + data[ i ] );
+      }
+      data[ sizeof( data ) - 1 ] = CRCtoAOG;
+      udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+    }
+    break;
+  }
+}
 
+// see https://gurtam.com/files/ftp/CAN/ (especialy J1939.zip)
 void canReceiver10Hz( void* z ) {
   constexpr TickType_t xFrequency = 100;
   TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -113,6 +168,8 @@ void canReceiver10Hz( void* z ) {
             if( digitalRead( ( uint8_t )steerConfig.gpioSteerswitch ) == steerConfig.steerswitchActiveLow ){
               if( machine.canbusSteeringState == 0x10 ){ //only try to engage when machine is ready, to avoid race conditions
                 machine.steeringEnabled = true;
+              } else {
+                showCanbusStateOnAOG( machine.canbusSteeringState );
               }
             }
             if( machine.canbusSteeringState == 0x14 ){
@@ -128,6 +185,8 @@ void canReceiver10Hz( void* z ) {
             if(( canFrame.data.u8[0] ) == 15 && ( canFrame.data.u8[1] ) == 96 && ( canFrame.data.u8[2] ) == 1 ){
               if( machine.canbusSteeringState == 0x10 ){ //only try to engage when machine is ready, to avoid race conditions
                 machine.steeringEnabled = true;
+              } else {
+                showCanbusStateOnAOG( machine.canbusSteeringState );
               }
             } else if(( canFrame.data.u8[0] ) == 15 && ( canFrame.data.u8[1] ) == 96 && ( canFrame.data.u8[2] ) == 0 ){
               machine.steeringEnabled = false;
@@ -212,6 +271,9 @@ void canSender10Hz( void* z ) {
 
 void initCan() {
   if( steerConfig.canBusEnabled ) {
+    udpHardwareMessage.listen( initialisation.portSendFrom );
+    ESPUI.getControl( labelStatusCan )->color = ControlColor::Alizarin;
+    ESPUI.updateLabel( labelStatusCan, "Canbus controller failed to start"); // will be updated when Canbus thread runs
     CAN_cfg.speed = ( CAN_speed_t )steerConfig.canBusSpeed;
     CAN_cfg.tx_pin_id = ( gpio_num_t )steerConfig.canBusTx;
     CAN_cfg.rx_pin_id = ( gpio_num_t )steerConfig.canBusRx;
@@ -241,5 +303,6 @@ void initCan() {
     if( steerConfig.outputType >= SteerConfig::OutputType::Canbus13_19Controller ){
       xTaskCreate( canSender10Hz, "canSender", 2048, NULL, 5, NULL );
     }
+    ESPUI.getControl( labelStatusCan )->color = ControlColor::Emerald;
   }
 }

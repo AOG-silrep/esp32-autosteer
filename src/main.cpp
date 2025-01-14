@@ -126,6 +126,17 @@ void setup( void ) {
   if( steerConfig.enableOTA ) {
     AsyncElegantOTA.begin( ESPUI.server );
   }
+
+  if( steerConfig.aogPortSendFrom != 0 ) {
+    initialisation.portSendFrom = steerConfig.aogPortSendFrom;
+  }
+  if( steerConfig.aogPortListenTo != 0 ) {
+    initialisation.portListenTo = steerConfig.aogPortListenTo;
+  }
+  if( steerConfig.aogPortSendTo != 0 ) {
+    initialisation.portSendTo = steerConfig.aogPortSendTo;
+  }
+
   initIdleStats();
   initCan();
   initSensors();

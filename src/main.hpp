@@ -344,3 +344,4 @@ extern void initCan();
 extern void initAutosteer();
 extern void initWiFi();
 extern void initDiagnostics();
+extern void showCanbusStateOnAOG();

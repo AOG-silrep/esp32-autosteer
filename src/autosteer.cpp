@@ -42,7 +42,6 @@ SteerMachineControl steerMachineControl;
 
 AsyncUDP udpSendFrom;
 AsyncUDP udpLocalPort;
-AsyncUDP udpRemotePort;
 
 double pidOutput = 0;
 double pidOutputTmp = 0;
@@ -535,18 +534,6 @@ static void IRAM_ATTR disengageIsr( void* arg ) {
 }
 
 void initAutosteer() {
-
-  if( steerConfig.aogPortSendFrom != 0 ) {
-    initialisation.portSendFrom = steerConfig.aogPortSendFrom;
-  }
-
-  if( steerConfig.aogPortListenTo != 0 ) {
-    initialisation.portListenTo = steerConfig.aogPortListenTo;
-  }
-
-  if( steerConfig.aogPortSendTo != 0 ) {
-    initialisation.portSendTo = steerConfig.aogPortSendTo;
-  }
 
   udpSendFrom.listen( initialisation.portSendFrom );
 
