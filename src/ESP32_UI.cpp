@@ -184,6 +184,8 @@ void initESPUI ( void ) {
     []( Control * control, int id ) {
       steerConfig.canBusEnabled = control->value.toInt() == 1;
       if( steerConfig.canBusEnabled ){
+        vTaskDelete( &canReceiverHandle );
+        vTaskDelete( &canSenderHandle );
         ESP32Can.CANStop();
       }
       setResetButtonToRed();

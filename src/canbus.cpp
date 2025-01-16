@@ -27,6 +27,8 @@
 #include "jsonFunctions.hpp"
 
 CAN_device_t CAN_cfg;
+TaskHandle_t canReceiverHandle = NULL;
+TaskHandle_t canSenderHandle = NULL;
 AsyncUDP udpHardwareMessage;
 
 constexpr uint8_t rxQueueSize = 10;
@@ -299,9 +301,9 @@ void initCan() {
       msgISO.data.u8[7] = 0x20;
       ESP32Can.CANWriteFrame( &msgISO );
     }
-    xTaskCreate( canReceiver10Hz, "canReceiver", 2048, NULL, 5, NULL );
+    xTaskCreate( canReceiver10Hz, "canReceiver", 2048, NULL, 5, &canReceiverHandle );
     if( steerConfig.outputType >= SteerConfig::OutputType::Canbus13_19Controller ){
-      xTaskCreate( canSender10Hz, "canSender", 2048, NULL, 5, NULL );
+      xTaskCreate( canSender10Hz, "canSender", 2048, NULL, 5, &canSenderHandle );
     }
     ESPUI.getControl( labelStatusCan )->color = ControlColor::Emerald;
   }

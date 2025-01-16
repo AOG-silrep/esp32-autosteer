@@ -54,6 +54,8 @@ extern uint16_t manualValveSwitcher;
 extern uint16_t manualValvePWMWidget;
 
 extern SemaphoreHandle_t i2cMutex;
+extern TaskHandle_t canReceiverHandle;
+extern TaskHandle_t canSenderHandle;
 
 struct Diagnostics {
   double steerSupplyVoltageMin;
