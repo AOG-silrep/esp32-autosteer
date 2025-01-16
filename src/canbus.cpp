@@ -167,16 +167,12 @@ void canReceiver10Hz( void* z ) {
             }
             machine.canbusSteeringState = ( canFrame.data.u8[2] );
             machine.lastCanbusSteeringMillis = millis();
-            if( digitalRead( ( uint8_t )steerConfig.gpioSteerswitch ) == steerConfig.steerswitchActiveLow ){
-              if( machine.canbusSteeringState == 0x10 ){ //only try to engage when machine is ready, to avoid race conditions
-                machine.steeringEnabled = true;
-              } else {
-                showCanbusStateOnAOG( machine.canbusSteeringState );
-              }
-            }
-            if( machine.canbusSteeringState == 0x14 ){
-              readyToDisengage = true; // we need the steer enabled confirmation from the machine before disengaging again
-            } else if( readyToDisengage == true ) {
+            if( machine.canbusSteeringState == 0x14 ){ // we need the steer enabled confirmation from the machine before disengaging again
+              readyToDisengage = true;
+            } else if( machine.canbusSteeringState == 0x00 || machine.canbusSteeringState == 0x20 ) { // handwheel activity or stagnant always disengages
+              machine.steeringEnabled = false;
+              readyToDisengage = false;
+            } else if( readyToDisengage == true ) { // going from 'engaged' to anything else will disengage
               machine.steeringEnabled = false;
               readyToDisengage = false;
             }
@@ -293,6 +289,30 @@ void canbusStateMessage( void* z ){
   vTaskDelete( NULL );
 }
 
+void canComplementSwitchWorker10Hz( void* z ) {
+  constexpr TickType_t xFrequency = 100;
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+  bool previousState;
+
+  for( ;; ) {
+   
+    bool state = digitalRead(( uint8_t )steerConfig.gpioSteerswitch );
+    if( previousState != state ){
+      if( state == steerConfig.steerswitchActiveLow ){
+        if(( machine.lastCanbusSteeringMillis + 500 ) < millis() ){ // Canbus steering timeout
+          showCanbusStateOnAOG( 0x60 );
+        } else if( machine.canbusSteeringState == 0x10 ){ // only try to engage when machine is ready, to avoid race conditions
+          machine.steeringEnabled = true;
+        } else {
+          showCanbusStateOnAOG( machine.canbusSteeringState );
+        }
+      }
+      previousState = state;
+    }
+    vTaskDelayUntil( &xLastWakeTime, xFrequency );
+  }
+}
+
 void initCan() {
   if( steerConfig.canBusEnabled ) {
     udpHardwareMessage.listen( initialisation.portSendFrom );
@@ -327,6 +347,7 @@ void initCan() {
     xTaskCreate( canReceiver10Hz, "canReceiver", 2048, NULL, 5, &canReceiverHandle );
     if( steerConfig.outputType >= SteerConfig::OutputType::Canbus13_19Controller ){
       xTaskCreate( canSender10Hz, "canSender", 2048, NULL, 5, &canSenderHandle );
+      xTaskCreate( canComplementSwitchWorker10Hz, "canComplementSwitch", 2048, NULL, 5, NULL );
     }
     ESPUI.getControl( labelStatusCan )->color = ControlColor::Emerald;
 
