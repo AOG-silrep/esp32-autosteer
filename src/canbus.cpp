@@ -267,26 +267,30 @@ void canSender10Hz( void* z ) {
   }
 }
 
-void canbusStateMessage( void* z ){
-  vTaskDelay( pdMS_TO_TICKS( 5000 ));
-  if( canReceiverHandle == NULL ){
-    uint8_t data[30] = {0x80, 0x81, 0x7F, 0xDD, 24, 3, 0, 0x43, 0x61, 0x6E, 0x62, 0x75, 0x73, 0x20, 0x66, 0x61, 0x69, 0x6C, 0x65, 0x64, 0x20, 0x74, 0x6F, 0x20, 0x73, 0x74, 0x61, 0x72, 0x74}; //Canbus failed to start
-    int CRCtoAOG = 0;
-    for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
-      CRCtoAOG = ( CRCtoAOG + data[ i ] );
     }
-    data[ sizeof( data ) - 1 ] = CRCtoAOG;
-    udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
   } else {
-    uint8_t data[33] = {0x80, 0x81, 0x7F, 0xDD, 27, 3, 1, 0x43, 0x61, 0x6E, 0x62, 0x75, 0x73, 0x20, 0x63, 0x6F, 0x6E, 0x74, 0x72, 0x6F, 0x6C, 0x6C, 0x65, 0x72, 0x20, 0x73, 0x74, 0x61, 0x72, 0x74, 0x65, 0x64}; //Canbus controller started
-    int CRCtoAOG = 0;
-    for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
-      CRCtoAOG = ( CRCtoAOG + data[ i ] );
+void canbusStateMessage( void* z ){
+  for( ;; ){
+    if( canReceiverHandle == NULL ){
+      uint8_t data[30] = {0x80, 0x81, 0x7F, 0xDD, 24, 3, 0, 0x43, 0x61, 0x6E, 0x62, 0x75, 0x73, 0x20, 0x66, 0x61, 0x69, 0x6C, 0x65, 0x64, 0x20, 0x74, 0x6F, 0x20, 0x73, 0x74, 0x61, 0x72, 0x74}; //Canbus failed to start
+      int CRCtoAOG = 0;
+      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
+        CRCtoAOG = ( CRCtoAOG + data[ i ] );
+      }
+      data[ sizeof( data ) - 1 ] = CRCtoAOG;
+      udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+      vTaskDelay( pdMS_TO_TICKS( 5000 )); // keep on showing this message
+    } else {
+      uint8_t data[33] = {0x80, 0x81, 0x7F, 0xDD, 27, 3, 1, 0x43, 0x61, 0x6E, 0x62, 0x75, 0x73, 0x20, 0x63, 0x6F, 0x6E, 0x74, 0x72, 0x6F, 0x6C, 0x6C, 0x65, 0x72, 0x20, 0x73, 0x74, 0x61, 0x72, 0x74, 0x65, 0x64}; //Canbus controller started
+      int CRCtoAOG = 0;
+      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
+        CRCtoAOG = ( CRCtoAOG + data[ i ] );
+      }
+      data[ sizeof( data ) - 1 ] = CRCtoAOG;
+      udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+      vTaskDelete( NULL ); // delete this task, canbus started
     }
-    data[ sizeof( data ) - 1 ] = CRCtoAOG;
-    udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
   }
-  vTaskDelete( NULL );
 }
 
 void canComplementSwitchWorker10Hz( void* z ) {
