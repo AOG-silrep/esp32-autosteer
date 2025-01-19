@@ -298,6 +298,15 @@ void autosteerWorker100Hz( void* z ) {
         }
         break;
 
+        case SteerConfig::OutputType::CanbusF0_240Controller: {
+          ledcWrite( 0, abs( pidOutputTmp ));
+          ledcWrite( 1, 0 );
+          ledcWrite( 2, 0 );
+          machine.valveOutput = pidOutputTmp;
+          steerSetpoints.pidOutput = pidOutputTmp;
+        }
+        break;
+
         default:
           break;
 

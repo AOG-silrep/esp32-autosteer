@@ -135,13 +135,14 @@ struct SteerConfig {
   //set to 3  if you want to use IBT 2  Driver + PWM 2-Coil Valve
   //set to 4  if you want to use IBT 2  Driver + Danfoss Valve PVE A/H/M
   enum class OutputType : uint8_t {
-    None = 0,
-    SteeringMotorCytron = 1,
-    SteeringMotorIBT2 = 2,
-    HydraulicPwm2Coil = 3,
-    HydraulicDanfoss = 4,
-    HydraulicBangBang = 5,
-    Canbus13_19Controller
+    None                    = 0,
+    SteeringMotorCytron     = 1,
+    SteeringMotorIBT2       = 2,
+    HydraulicPwm2Coil       = 3,
+    HydraulicDanfoss        = 4,
+    HydraulicBangBang       = 5,
+    Canbus13_19Controller   = 6,
+    CanbusF0_240Controller  = 7
   } outputType = OutputType::None;
 
   double pwmFrequency = 1000;

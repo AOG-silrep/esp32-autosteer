@@ -22,6 +22,9 @@
 
 #include <ESPUI.h>
 #include <CAN_config.h>
+#include <SPI.h>
+#include <mcp_can.h> // MCP2515
+SPIClass *hspi;
 
 #include "main.hpp"
 #include "jsonFunctions.hpp"
@@ -237,7 +240,7 @@ void canReceiver10Hz( void* z ) {
   }
 }
 
-void canSender10Hz( void* z ) {
+void can13_19Sender10Hz( void* z ) { // Valtra Massey Challenger
   constexpr TickType_t xFrequency = 100;
   TickType_t xLastWakeTime = xTaskGetTickCount();
 
@@ -267,8 +270,85 @@ void canSender10Hz( void* z ) {
   }
 }
 
+void canF0_240Sender10Hz( void* z ) { // Fendt
+  constexpr TickType_t xFrequency = 100;
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+
+  for( ;; ) {
+    if( millis() - machine.lastCanbusSteeringMillis > 500 ){
+      machine.steeringEnabled = false;
     }
-  } else {
+    CAN_frame_t canFrame;
+    canFrame.MsgID = 0x0CEFF02C;
+    canFrame.FIR.B.FF = CAN_frame_ext;
+    canFrame.FIR.B.DLC = 6;
+    canFrame.data.u8[0] = 5;
+    canFrame.data.u8[1] = 9;
+    canFrame.data.u8[3] = 10;
+    if( steerSetpoints.enabled == true && steerSetpoints.speed > steerConfig.minAutosteerSpeed ){
+      canFrame.data.u8[2] = 3;
+      canFrame.data.u8[4] = ( uint8_t ) ( machine.valveOutput >> 8 );
+      canFrame.data.u8[5] = ( uint8_t ) machine.valveOutput;
+    } else {
+      canFrame.data.u8[2] = 2;
+      canFrame.data.u8[4] = 0;
+      canFrame.data.u8[5] = 0;
+    }
+    ESP32Can.CANWriteFrame( &canFrame );
+
+    vTaskDelayUntil( &xLastWakeTime, xFrequency );
+  }
+}
+
+void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
+  constexpr TickType_t xFrequency = 100;
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+
+  int8_t SCK = 5, MISO = 16, MOSI = 17, CS = 0;
+  hspi = new SPIClass( HSPI );
+  hspi->begin( SCK, MISO, MOSI, CS );
+  pinMode( CS, OUTPUT );
+  MCP_CAN ISOBus( hspi, CS ); // Set SPI instance and CS
+
+  if( ISOBus.begin( MCP_STDEXT, CAN_250KBPS, MCP_16MHZ ) == CAN_OK ){
+    Serial.println( "MCP2515 (ISOBus) started" );
+  } else{
+    Serial.println( "MCP2515 (ISOBus) failed to start" );
+    vTaskDelete( NULL );
+  }
+  ISOBus.init_Mask( 0, 1, 0x00FFFF00 ); // Init first mask
+  ISOBus.init_Filt( 0, 1, 0x18EF2CF0 ); // Fendt engage
+  ISOBus.init_Filt( 1, 1, 0x18EF2CF0 ); // Fendt engage
+
+  ISOBus.init_Mask( 1, 1, 0x00FFFF00 ); // Init second mask
+  ISOBus.init_Filt( 2, 1, 0x18EF2CF0 ); // Fendt engage
+  ISOBus.init_Filt( 3, 1, 0x18EF2CF0 ); // Fendt engage
+  ISOBus.init_Filt( 4, 1, 0x18EF2CF0 ); // Fendt engage
+  ISOBus.init_Filt( 5, 1, 0x18EF2CF0 ); // Fendt engage
+  ISOBus.setMode( MCP_NORMAL );
+  long unsigned int rxId;
+  unsigned char len = 0;
+  unsigned char rxBuf[8];
+
+  for( ;; ) {
+    
+    if( ISOBus.checkReceive() == CAN_MSGAVAIL ){
+      ISOBus.readMsgBuf( &rxId, &len, rxBuf );  // Read data: len = data length, buf = data byte(s)
+      if(( rxId & 0x80000000 ) == 0x80000000 ){ // extended frame
+        rxId = rxId & 0x1FFFFFFF;
+      }
+      if( rxId == 0x18EF2CF0 ){
+        if( rxBuf[0] == 0x0F && rxBuf[1] == 0x60 && rxBuf[2] == 0x01 ){
+          machine.steeringEnabled = true;
+        }
+      }
+    } else { // only delay task when no more messages are available
+      vTaskDelayUntil( &xLastWakeTime, xFrequency );
+    }
+
+  }
+}
+
 void canbusStateMessage( void* z ){
   for( ;; ){
     if( canReceiverHandle == NULL ){
@@ -317,6 +397,20 @@ void canComplementSwitchWorker10Hz( void* z ) {
   }
 }
 
+void claimAddress( CAN_frame_t msgISO ){
+  msgISO.FIR.B.FF = CAN_frame_ext;
+  msgISO.FIR.B.DLC = 8;
+  msgISO.data.u8[0] = 0x00;
+  msgISO.data.u8[1] = 0x00;
+  msgISO.data.u8[2] = 0xC0;
+  msgISO.data.u8[3] = 0x0C;
+  msgISO.data.u8[4] = 0x00;
+  msgISO.data.u8[5] = 0x17;
+  msgISO.data.u8[6] = 0x02;
+  msgISO.data.u8[7] = 0x20;
+  ESP32Can.CANWriteFrame( &msgISO );
+}
+
 void initCan() {
   if( steerConfig.canBusEnabled ) {
     udpHardwareMessage.listen( initialisation.portSendFrom );
@@ -330,29 +424,19 @@ void initCan() {
     // Init CAN Module
     ESP32Can.CANInit();
     CAN_frame_t msgISO;
-    bool claimAddress = false;
-    if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
+    if( steerConfig.outputType == SteerConfig::OutputType::Canbus13_19Controller ){
       msgISO.MsgID = 0x18EEFF1C;
-      claimAddress = true;
-    }
-    if( claimAddress ){
-      msgISO.FIR.B.FF = CAN_frame_ext;
-      msgISO.FIR.B.DLC = 8;
-      msgISO.data.u8[0] = 0x00;
-      msgISO.data.u8[1] = 0x00;
-      msgISO.data.u8[2] = 0xC0;
-      msgISO.data.u8[3] = 0x0C;
-      msgISO.data.u8[4] = 0x00;
-      msgISO.data.u8[5] = 0x17;
-      msgISO.data.u8[6] = 0x02;
-      msgISO.data.u8[7] = 0x20;
-      ESP32Can.CANWriteFrame( &msgISO );
+      claimAddress( msgISO );
+      xTaskCreate( can13_19Sender10Hz, "can13_19Sender", 2048, NULL, 5, &canSenderHandle );
+      xTaskCreate( canComplementSwitchWorker10Hz, "canComplementSwitch", 2048, NULL, 5, NULL );
+    } else if( steerConfig.outputType == SteerConfig::OutputType::CanbusF0_240Controller ){
+      msgISO.MsgID = 0x18EEFF2C;
+      claimAddress( msgISO );
+      xTaskCreate( canF0_240Sender10Hz, "canF0_240Sender", 2048, NULL, 5, &canSenderHandle );
+      xTaskCreate( canComplementSwitchWorker10Hz, "canComplementSwitch", 2048, NULL, 5, NULL );
+      xTaskCreate( canFendtEngageReceiver10Hz, "canFendtEngageReceiver", 4096, NULL, 5, NULL );
     }
     xTaskCreate( canReceiver10Hz, "canReceiver", 2048, NULL, 5, &canReceiverHandle );
-    if( steerConfig.outputType >= SteerConfig::OutputType::Canbus13_19Controller ){
-      xTaskCreate( canSender10Hz, "canSender", 2048, NULL, 5, &canSenderHandle );
-      xTaskCreate( canComplementSwitchWorker10Hz, "canComplementSwitch", 2048, NULL, 5, NULL );
-    }
     ESPUI.getControl( labelStatusCan )->color = ControlColor::Emerald;
 
   }

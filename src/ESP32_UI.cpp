@@ -40,6 +40,7 @@ void addWasInputSelection( uint16_t parent ) {
   ESPUI.addControl( ControlType::Option, "Deere Variable Duty Cycle", String( ( uint16_t )SteerConfig::AnalogIn::JDVariableDuty ), ControlColor::Alizarin, parent );
   if( steerConfig.canBusEnabled ) {
       ESPUI.addControl( ControlType::Option, "Canbus: Valtra-Massey-Challenger", String( ( uint16_t )SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ), ControlColor::Alizarin, parent );
+      ESPUI.addControl( ControlType::Option, "Canbus: Fendt", String( ( uint16_t )SteerConfig::AnalogIn::CanbusFendt ), ControlColor::Alizarin, parent );
   }
 }
   
@@ -293,7 +294,9 @@ void initESPUI ( void ) {
         steerConfig.wheelAngleInput = ( SteerConfig::AnalogIn )control->value.toInt();
         if( steerConfig.wheelAngleInput >= SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
           steerConfig.wheelAngleSensorType = SteerConfig::WheelAngleSensorType::WheelAngle; // arm linkage not applicable for Canbus
-        }        
+        } else if( steerConfig.wheelAngleInput >= SteerConfig::AnalogIn::CanbusFendt ){
+          steerConfig.wheelAngleSensorType = SteerConfig::WheelAngleSensorType::WheelAngle;
+        }
         setResetButtonToRed();
       } );
       ESPUI.addControl( ControlType::Option, "None", "0", ControlColor::Alizarin, sel );
@@ -450,6 +453,7 @@ void initESPUI ( void ) {
       ESPUI.addControl( ControlType::Option, "Hydraulic: IBT 2 + Bang Bang Valve", "5", ControlColor::Alizarin, sel );
       if( steerConfig.canBusEnabled ) {
         ESPUI.addControl( ControlType::Option, "Canbus: 13/19 Controller", "6", ControlColor::Alizarin, sel );
+        ESPUI.addControl( ControlType::Option, "Canbus: F0/240 Controller", "7", ControlColor::Alizarin, sel );
       }
     }
 
