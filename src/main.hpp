@@ -180,6 +180,7 @@ struct SteerConfig {
   uint8_t gpioDisengage = 23;
   uint8_t gpioDisengagePullup = 32; // pullup driver for heavy duty disengage switches
   uint8_t gpioWASPulse = 39;
+  uint8_t gpioSteerSupplyVoltage = 34;
   uint16_t disengageFramePulses = 3;
   uint16_t disengageFrameMillis = 1000;
   bool disengageHeavyDuty = false;

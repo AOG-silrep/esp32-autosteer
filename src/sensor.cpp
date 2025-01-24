@@ -68,10 +68,8 @@ void sensorWorker100HzPoller( void* z ) {
   for( ;; ) {
 
     float wheelAngleTmp = 31250;
-    if( xSemaphoreTake( i2cMutex, 1000 ) == pdTRUE ) {
-      machine.steerSupplyVoltage = ads.readADC_SingleEnded( 3 );
-      xSemaphoreGive( i2cMutex );
-    }
+    machine.steerSupplyVoltage = map( analogRead( 34 ), 0, 4095, 186, 3909 );
+    
     switch( steerConfig.wheelAngleInput ) {
       case SteerConfig::AnalogIn::JDVariableDuty: {
         wheelAngleTmp = DeereWasOnTime - DeereWasOffTime;

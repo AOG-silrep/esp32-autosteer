@@ -44,23 +44,12 @@ void diagnosticWorker1Hz( void* z ) {
       str.reserve( 30 );
       str = ( uint16_t ) machine.steerSupplyVoltage ;
       str += " counts; ";
-      if( steerConfig.adsGain == SteerConfig::ADSGain::GAIN_TWOTHIRDS ){
-        str += ( double ) ( ( double ) ( machine.steerSupplyVoltage * 3.03 ) * 0.0001875 ); // .1875 mv per bit; 10k/3.3k = 3.03
-        str += " volts\n";
-        str += ( double ) ( ( double ) ( diagnostics.steerSupplyVoltageMin * 3.03 ) * 0.0001875 );
-        str += " volts min while steering\n";
-        str += ( double ) ( ( double ) ( diagnostics.steerSupplyVoltageMax * 3.03 ) * 0.0001875 );
-        str += " volts max while steering";
-      } else if( steerConfig.adsGain == SteerConfig::ADSGain::GAIN_ONE ){
-        str += ( double ) ( ( double ) ( machine.steerSupplyVoltage * 4.545 ) * 0.000125 ); // .125 mv per bit; 10k/2.2k = 4.545
-        str += " volts\n";
-        str += ( double ) ( ( double ) ( diagnostics.steerSupplyVoltageMin * 4.545 ) * 0.000125 );
-        str += " volts min while steering\n";
-        str += ( double ) ( ( double ) ( diagnostics.steerSupplyVoltageMax * 4.545 ) * 0.000125 );
-        str += " volts max while steering";
-      } else {
-        str += "N/A";
-      }
+      str += ( double ) ( ( double ) ( machine.steerSupplyVoltage * 4.54 ) / 913 ); //divide by 913 for ESP32; 10k/2.2k = 4.54
+      str += " volts\n";
+      str += ( double ) ( ( double ) ( diagnostics.steerSupplyVoltageMin * 4.54 ) / 913 );
+      str += " volts min while steering\n";
+      str += ( double ) ( ( double ) ( diagnostics.steerSupplyVoltageMax * 4.54 ) / 913 );
+      str += " volts max while steering";
       ESPUI.updateLabel( labelSupplyVoltage, str );
     }
     {
