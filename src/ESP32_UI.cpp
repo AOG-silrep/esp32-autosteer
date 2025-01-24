@@ -611,6 +611,14 @@ void initESPUI ( void ) {
       ESPUI.addControl( ControlType::Option, "Deere variable duty sensor", "2", ControlColor::Alizarin, sel );
       ESPUI.addControl( ControlType::Option, "Motor current", "3", ControlColor::Alizarin, sel );
     }
+    {
+      uint16_t sel = ESPUI.addControl( ControlType::Switcher, "Heavy Duty Disengage Switch", steerConfig.disengageHeavyDuty ? "1" : "0" , ControlColor::Peterriver, tab,
+      []( Control * control, int id ) {
+        steerConfig.disengageHeavyDuty = control->value.toInt() == 1;
+        pinMode( steerConfig.gpioDisengagePullup, OUTPUT );
+        digitalWrite( steerConfig.gpioDisengagePullup, steerConfig.disengageHeavyDuty );
+      } );
+    }
 
     switch( steerConfig.disengageSwitchType ){
       case SteerConfig::DisengageSwitchType::Hydraulic: {

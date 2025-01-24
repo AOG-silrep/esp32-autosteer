@@ -623,6 +623,9 @@ void initAutosteer() {
     pinMode( steerConfig.gpioAlarm, OUTPUT );
     digitalWrite( steerConfig.gpioAlarm, LOW );
 
+    pinMode( steerConfig.gpioDisengagePullup, OUTPUT );
+    digitalWrite( steerConfig.gpioDisengagePullup, steerConfig.disengageHeavyDuty );
+
     switch( steerConfig.outputType ) {
       case SteerConfig::OutputType::SteeringMotorIBT2: {
         initialisation.outputType = SteerConfig::OutputType::SteeringMotorIBT2;

@@ -178,9 +178,11 @@ struct SteerConfig {
   uint8_t gpioSteerswitch = 15;
   uint8_t gpioSteerLED = 12;
   uint8_t gpioDisengage = 23;
+  uint8_t gpioDisengagePullup = 32; // pullup driver for heavy duty disengage switches
   uint8_t gpioWASPulse = 39;
   uint16_t disengageFramePulses = 3;
   uint16_t disengageFrameMillis = 1000;
+  bool disengageHeavyDuty = false;
   uint16_t JDVariableDutyChange = 5;
   double steeringShuntVoltsPerAmp = 1.0;
   uint16_t maxSteerCurrent = 512;
