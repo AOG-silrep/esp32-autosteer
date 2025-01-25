@@ -93,6 +93,11 @@ void sensorWorker100HzPoller( void* z ) {
         }
       }
       break;
+      
+      case SteerConfig::AnalogIn::CanbusFendt: {
+        wheelAngleTmp = ( uint16_t )( machine.canbusWasCounts + 32128 );
+      }
+      break;
 
       case SteerConfig::AnalogIn::CanbusValtraMasseyChallenger: {
         wheelAngleTmp = machine.canbusWasCounts;
