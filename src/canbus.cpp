@@ -46,7 +46,8 @@ constexpr uint16_t j1939PgnRPTO = 65091;
 constexpr uint16_t j1939PgnFPTO = 65092;
 
 constexpr uint16_t j1939PgnVMCWas = 44032;
-constexpr uint16_t j1939PgnVMCAutosteer = 61184;
+constexpr uint32_t VMCAutosteer = 0x18EF1C00;
+constexpr uint32_t FendtAutosteer = 0x0CEF2CF0;
 
 bool readyToDisengage;
 
@@ -182,60 +183,76 @@ void canReceiver10Hz( void* z ) {
           }
           break;
 
-          case j1939PgnVMCAutosteer:{ //0x18EF1C00
-            if(( canFrame.data.u8[0] ) == 15 && ( canFrame.data.u8[1] ) == 96 && ( canFrame.data.u8[2] ) == 1 ){
-              if( machine.canbusSteeringState == 0x10 ){ //only try to engage when machine is ready, to avoid race conditions
-                machine.steeringEnabled = true;
-              } else {
-                showCanbusStateOnAOG( machine.canbusSteeringState );
+          default:{
+            // Can Frame ID specific, since PGNs match but message IDs don't
+            switch( canFrame.MsgID ){
+
+              case FendtAutosteer:{ //0x0CEF2CF0
+                if( canFrame.data.u8[0] == 5 && canFrame.data.u8[1] == 26 && canFrame.data.u8[2] == 0 ){
+                    machine.steeringEnabled = false;
+                } else if( canFrame.data.u8[0] == 5 && canFrame.data.u8[1] == 10 ){
+                  machine.canbusWasCounts = ((( int8_t ) canFrame.data.u8[4] << 8 ) + canFrame.data.u8[5] );
+                  machine.lastCanbusWasMillis = millis();
+                }
               }
-            } else if(( canFrame.data.u8[0] ) == 15 && ( canFrame.data.u8[1] ) == 96 && ( canFrame.data.u8[2] ) == 0 ){
-              machine.steeringEnabled = false;
+              break;
+
+              case VMCAutosteer:{ //0x18EF1C00
+                if(( canFrame.data.u8[0] ) == 15 && ( canFrame.data.u8[1] ) == 96 && ( canFrame.data.u8[2] ) == 1 ){
+                  if( machine.canbusSteeringState == 0x10 ){ //only try to engage when machine is ready, to avoid race conditions
+                    machine.steeringEnabled = true;
+                  } else {
+                    showCanbusStateOnAOG( machine.canbusSteeringState );
+                  }
+                } else if(( canFrame.data.u8[0] ) == 15 && ( canFrame.data.u8[1] ) == 96 && ( canFrame.data.u8[2] ) == 0 ){
+                  machine.steeringEnabled = false;
+              }
+              
+              default:
+              break;
+              }
             }
           }
           break;
         }
+      } else { // no Canbus info, let CPU do other stuff
+          vTaskDelayUntil( &xLastWakeTime, xFrequency );
       }
-    } else { // no Canbus info, let CPU do other stuff
-        vTaskDelayUntil( &xLastWakeTime, xFrequency );
     }
+    static time_t loopTimeToWaitTo = 0;
 
-    {
-      static time_t loopTimeToWaitTo = 0;
+    if( loopTimeToWaitTo < millis() ) {
 
-      if( loopTimeToWaitTo < millis() ) {
+      String str;
+      str.reserve( 200 );
 
-        String str;
-        str.reserve( 200 );
-
-        str = "<table style='margin:auto;'><tr><td style='text-align:left; padding: 0px 5px;'>Wheel-based Speed:</td><td style='text-align:left; padding: 0px 5px;'>";
-        str += String( steerCanData.speed );
-        str += "</td></tr><tr><td style='text-align:left; padding: 0px 5px;'>Motor RPM:</td><td style='text-align:left; padding: 0px 5px;'>";
-        str += String( steerCanData.motorRpm );
-        str += "</td></tr><tr><td style='text-align:left; padding: 0px 5px;'>Front Hitch Position:</td><td style='text-align:left; padding: 0px 5px;'>";
-        str += String( steerCanData.frontHitchPosition );
-        str += "</td></tr><tr><td style='text-align:left; padding: 0px 5px;'>Rear Hitch Position:</td><td style='text-align:left; padding: 0px 5px;'>";
-        str += String( steerCanData.rearHitchPosition );
-        str += "</td></tr><tr><td style='text-align:left; padding: 0px 5px;'>Front PTO RPM:</td><td style='text-align:left; padding: 0px 5px;'>";
-        str += String( steerCanData.frontPtoRpm );
-        str += "</td></tr><tr><td style='text-align:left; padding: 0px 5px;'>Rear PTO RPM:</td><td style='text-align:left; padding: 0px 5px;'>";
-        str += String( steerCanData.rearPtoRpm );
-        str += "</td></tr></table>";
-        str += "Received ";
-        time_t elapse = millis() - lastCanbusMsgMillis;
-        if( elapse < 1000 ){
-          str += String( elapse );
-          str += " millis";
-        } else {
-          str += String( elapse / 1000 );
-          str += " seconds";
-        }
-        str += " ago";
+      str = "<table style='margin:auto;'><tr><td style='text-align:left; padding: 0px 5px;'>Wheel-based Speed:</td><td style='text-align:left; padding: 0px 5px;'>";
+      str += String( steerCanData.speed );
+      str += "</td></tr><tr><td style='text-align:left; padding: 0px 5px;'>Motor RPM:</td><td style='text-align:left; padding: 0px 5px;'>";
+      str += String( steerCanData.motorRpm );
+      str += "</td></tr><tr><td style='text-align:left; padding: 0px 5px;'>Front Hitch Position:</td><td style='text-align:left; padding: 0px 5px;'>";
+      str += String( steerCanData.frontHitchPosition );
+      str += "</td></tr><tr><td style='text-align:left; padding: 0px 5px;'>Rear Hitch Position:</td><td style='text-align:left; padding: 0px 5px;'>";
+      str += String( steerCanData.rearHitchPosition );
+      str += "</td></tr><tr><td style='text-align:left; padding: 0px 5px;'>Front PTO RPM:</td><td style='text-align:left; padding: 0px 5px;'>";
+      str += String( steerCanData.frontPtoRpm );
+      str += "</td></tr><tr><td style='text-align:left; padding: 0px 5px;'>Rear PTO RPM:</td><td style='text-align:left; padding: 0px 5px;'>";
+      str += String( steerCanData.rearPtoRpm );
+      str += "</td></tr></table>";
+      str += "Received ";
+      time_t elapse = millis() - lastCanbusMsgMillis;
+      if( elapse < 1000 ){
+        str += String( elapse );
+        str += " millis";
+      } else {
+        str += String( elapse / 1000 );
+        str += " seconds";
+      }
+      str += " ago";
 
       ESPUI.updateLabel( labelStatusCanESP32, str );
 
-        loopTimeToWaitTo = millis() + 1000;
-      }
+      loopTimeToWaitTo = millis() + 1000;
     }
   }
 }
