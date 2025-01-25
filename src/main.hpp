@@ -93,6 +93,7 @@ struct Machine {
   float wheelAngle; // wheel angle in degrees
   time_t lastCanbusSteeringMillis; // last time a CANBUS steering message was received
   time_t lastCanbusWasMillis; // last time a WAS CANBUS message was received
+  time_t lastMCP2515CanbusMillis; // last time a MCP2515 CANBUS message was received
 };
 extern Machine machine;
 

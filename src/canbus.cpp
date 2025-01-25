@@ -328,9 +328,13 @@ void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
   MCP_CAN ISOBus( hspi, CS ); // Set SPI instance and CS
 
   if( ISOBus.begin( MCP_STDEXT, CAN_250KBPS, MCP_16MHZ ) == CAN_OK ){
-    Serial.println( "MCP2515 (ISOBus) started" );
+    Serial.println( "MCP2515 started" );
   } else{
-    Serial.println( "MCP2515 (ISOBus) failed to start" );
+    Serial.println( "MCP2515 failed to start" );
+    String str;
+    str.reserve( 200 );
+    str += "MCP2515 failed to start";
+    ESPUI.updateLabel( labelStatusCanMCP2515, str );
     vTaskDelete( NULL );
   }
   ISOBus.init_Mask( 0, 1, 0x00FFFF00 ); // Init first mask
@@ -343,6 +347,8 @@ void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
   ISOBus.init_Filt( 4, 1, 0x18EF2CF0 ); // Fendt engage
   ISOBus.init_Filt( 5, 1, 0x18EF2CF0 ); // Fendt engage
   ISOBus.setMode( MCP_NORMAL );
+  byte data[8] = {0x00, 0x00, 0xC0, 0x0C, 0x00, 0x17, 0x02, 0x20};
+  ISOBus.sendMsgBuf( 0x18EEFF2C, 8, data );
   long unsigned int rxId;
   unsigned char len = 0;
   unsigned char rxBuf[8];
@@ -358,11 +364,34 @@ void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
         if( rxBuf[0] == 0x0F && rxBuf[1] == 0x60 && rxBuf[2] == 0x01 ){
           machine.steeringEnabled = true;
         }
+        machine.lastMCP2515CanbusMillis = millis();
       }
-    } else { // only delay task when no more messages are available
-      vTaskDelayUntil( &xLastWakeTime, xFrequency );
-    }
+    } else { 
+        static time_t loopTimeToWaitTo = 0;
 
+        if( loopTimeToWaitTo < millis() ) {
+
+          String str;
+          str.reserve( 200 );
+
+          str = String( rxId, HEX );
+          str += " Received ";
+          time_t elapse = millis() - machine.lastMCP2515CanbusMillis;
+          if( elapse < 1000 ){
+            str += String( elapse );
+            str += " millis";
+          } else {
+            str += String( elapse / 1000 );
+            str += " seconds";
+          }
+          str += " ago";
+
+          ESPUI.updateLabel( labelStatusCanMCP2515, str );
+
+          loopTimeToWaitTo = millis() + 1000;
+        }
+        vTaskDelayUntil( &xLastWakeTime, xFrequency ); // only delay task when no more messages are available
+    }
   }
 }
 
