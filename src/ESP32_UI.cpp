@@ -20,7 +20,8 @@ uint16_t labelWheelAngleDisplacement;
 
 uint16_t labelStatusOutput;
 uint16_t labelStatusAdc;
-uint16_t labelStatusCan;
+uint16_t labelStatusCanESP32;
+uint16_t labelStatusCanMCP2515;
 uint16_t labelBuildDate;
 uint16_t manualValveSwitcher;
 uint16_t manualValvePWMWidget;
@@ -108,7 +109,8 @@ void initESPUI ( void ) {
 
     labelStatusOutput = ESPUI.addControl( ControlType::Label, "Output:", "No Output configured", ControlColor::Turquoise, tab );
     labelStatusAdc = ESPUI.addControl( ControlType::Label, "WAS:", "No WAS configured", ControlColor::Turquoise, tab );
-    labelStatusCan = ESPUI.addControl( ControlType::Label, "CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
+    labelStatusCanESP32 = ESPUI.addControl( ControlType::Label, "ESP32 CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
+    labelStatusCanMCP2515 = ESPUI.addControl( ControlType::Label, "MCP2515 CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
     String buildDate = String(__DATE__);
     buildDate += String(" ");
     buildDate += String(__TIME__);

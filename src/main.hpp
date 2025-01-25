@@ -49,7 +49,8 @@ extern uint16_t labelSwitchStates;
 
 extern uint16_t labelStatusOutput;
 extern uint16_t labelStatusAdc;
-extern uint16_t labelStatusCan;
+extern uint16_t labelStatusCanESP32;
+extern uint16_t labelStatusCanMCP2515;
 extern uint16_t manualValveSwitcher;
 extern uint16_t manualValvePWMWidget;
 

@@ -232,7 +232,7 @@ void canReceiver10Hz( void* z ) {
         }
         str += " ago";
 
-        ESPUI.updateLabel( labelStatusCan, str );
+      ESPUI.updateLabel( labelStatusCanESP32, str );
 
         loopTimeToWaitTo = millis() + 1000;
       }
@@ -415,8 +415,8 @@ void initCan() {
   if( steerConfig.canBusEnabled ) {
     udpHardwareMessage.listen( initialisation.portSendFrom );
     xTaskCreate( canbusStateMessage, "canbusStateMessage", 2048, NULL, 0, NULL );
-    ESPUI.getControl( labelStatusCan )->color = ControlColor::Alizarin;
-    ESPUI.updateLabel( labelStatusCan, "Canbus controller failed to start"); // will be updated when Canbus thread runs
+    ESPUI.getControl( labelStatusCanESP32 )->color = ControlColor::Alizarin;
+    ESPUI.updateLabel( labelStatusCanESP32, "Canbus controller failed to start"); // will be updated when Canbus thread runs
     CAN_cfg.speed = ( CAN_speed_t )steerConfig.canBusSpeed;
     CAN_cfg.tx_pin_id = ( gpio_num_t )steerConfig.canBusTx;
     CAN_cfg.rx_pin_id = ( gpio_num_t )steerConfig.canBusRx;
@@ -437,7 +437,7 @@ void initCan() {
       xTaskCreate( canFendtEngageReceiver10Hz, "canFendtEngageReceiver", 4096, NULL, 5, NULL );
     }
     xTaskCreate( canReceiver10Hz, "canReceiver", 2048, NULL, 5, &canReceiverHandle );
-    ESPUI.getControl( labelStatusCan )->color = ControlColor::Emerald;
+    ESPUI.getControl( labelStatusCanESP32 )->color = ControlColor::Emerald;
 
   }
 }
