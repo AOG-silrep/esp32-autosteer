@@ -181,72 +181,114 @@ void initSensors() {
   String str;
   str.reserve( 30 );
 
-  if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
+  switch ( steerConfig.wheelAngleInput ){
 
-    str = "Canbus: Valtra-Massey-Challenger WAS initialized";
-    handle->color = ControlColor::Emerald;
-    ESPUI.updateLabel( labelStatusAdc, str );
-  }
-  else if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::JDVariableDuty ){
-    pinMode( steerConfig.gpioWASPulse, INPUT );
-    attachInterrupt( steerConfig.gpioWASPulse, DeereVariableDutyWasIsr, CHANGE );
+    case SteerConfig::AnalogIn::CanbusFendt:{
+      str = "Canbus: Fendt WAS initialized";
+      handle->color = ControlColor::Emerald;
+      ESPUI.updateLabel( labelStatusAdc, str );
+    }
+    break;
 
-    str = "Deere variable duty WAS initialized";
-    handle->color = ControlColor::Emerald;
-    ESPUI.updateLabel( labelStatusAdc, str );
+    case SteerConfig::AnalogIn::CanbusValtraMasseyChallenger:{
+      str = "Canbus: Valtra-Massey-Challenger WAS initialized";
+      handle->color = ControlColor::Emerald;
+      ESPUI.updateLabel( labelStatusAdc, str );
+    }
+    break;
 
-  } else {
-    
-    ads.setGain( (adsGain_t)steerConfig.adsGain );
-    // ads.setGain(GAIN_TWOTHIRDS);   // 2/3x gain +/- 6.144V  1 bit = 3mV      0.1875mV (default)  
-    // ads.setGain(GAIN_ONE);        // 1x gain   +/- 4.096V  1 bit = 2mV      0.125mV
-    // ads.setGain(GAIN_TWO);        // 2x gain   +/- 2.048V  1 bit = 1mV      0.0625mV
-    // ads.setGain(GAIN_FOUR);       // 4x gain   +/- 1.024V  1 bit = 0.5mV    0.03125mV
-    // ads.setGain(GAIN_EIGHT);      // 8x gain   +/- 0.512V  1 bit = 0.25mV   0.015625mV
-    // ads.setGain(GAIN_SIXTEEN);    // 16x gain  +/- 0.256V  1 bit = 0.125mV  0.0078125mV
+    case SteerConfig::AnalogIn::JDVariableDuty:{
+      pinMode( steerConfig.gpioWASPulse, INPUT );
+      attachInterrupt( steerConfig.gpioWASPulse, DeereVariableDutyWasIsr, CHANGE );
+      str = "Deere variable duty WAS initialized";
+      handle->color = ControlColor::Emerald;
+      ESPUI.updateLabel( labelStatusAdc, str );
+    }
+    break;
 
-    ads.begin();
-    ads.setSPS( ADS1115_DR_860SPS );
+    default:{
+      ads.setGain( (adsGain_t)steerConfig.adsGain );
+      // ads.setGain(GAIN_TWOTHIRDS);   // 2/3x gain +/- 6.144V  1 bit = 3mV      0.1875mV (default)  
+      // ads.setGain(GAIN_ONE);        // 1x gain   +/- 4.096V  1 bit = 2mV      0.125mV
+      // ads.setGain(GAIN_TWO);        // 2x gain   +/- 2.048V  1 bit = 1mV      0.0625mV
+      // ads.setGain(GAIN_FOUR);       // 4x gain   +/- 1.024V  1 bit = 0.5mV    0.03125mV
+      // ads.setGain(GAIN_EIGHT);      // 8x gain   +/- 0.512V  1 bit = 0.25mV   0.015625mV
+      // ads.setGain(GAIN_SIXTEEN);    // 16x gain  +/- 0.256V  1 bit = 0.125mV  0.0078125mV
 
-    str = "ADS1115 initialized\n";
+      ads.begin();
+      ads.setSPS( ADS1115_DR_860SPS );
 
-    handle->color = ControlColor::Emerald;
-    if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::None ){
-      str += "no input selected\n";
-      handle->color = ControlColor::Alizarin;
-    }
-    else if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::ADS1115A0Single ){
-      str += "A0 single input selected\n";
-    }
-    else if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::ADS1115A1Single ){
-      str += "A1 single input selected\n";
-    }
-    else if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::ADS1115A0A1Differential ){
-      str += "A0/A1 differential input selected\n";
-    }
+      str = "ADS1115 initialized\n";
 
-    if( steerConfig.adsGain == SteerConfig::ADSGain::GAIN_TWOTHIRDS ){
-      str += " max voltage: 6.144\n5v WAS directly connected";
+      handle->color = ControlColor::Emerald;
+      switch ( steerConfig.wheelAngleInput ){
+
+        case SteerConfig::AnalogIn::None:{
+          str += "no input selected\n";
+          handle->color = ControlColor::Alizarin;
+        }
+        break;
+
+        case SteerConfig::AnalogIn::ADS1115A0Single:{
+          str += "A0 single input selected\n";
+        }
+        break;
+
+        case SteerConfig::AnalogIn::ADS1115A1Single:{
+          str += "A1 single input selected\n";
+        }
+        break;
+
+        case SteerConfig::AnalogIn::ADS1115A0A1Differential:{
+          str += "A0/A1 single input selected\n";
+        }
+        break;
+        
+        default:
+          break;
+      }
+
+      switch ( steerConfig.adsGain ){
+
+        case SteerConfig::ADSGain::GAIN_TWOTHIRDS:{
+          str += " max voltage: 6.144\n5v WAS directly connected";
+        }
+        break;
+        
+        case SteerConfig::ADSGain::GAIN_ONE:{
+          str += " max voltage: 4.096\n5v WAS-3.3k-ADS-5.6k-Gnd divider";
+        }
+        break;
+        
+        case SteerConfig::ADSGain::GAIN_TWO:{
+          str += " max voltage: 2.048\nWAS not defined";
+        }
+        break;
+        
+        case SteerConfig::ADSGain::GAIN_FOUR:{
+          str += " max voltage: 1.024\nWAS not defined";
+        }
+        break;
+        
+        case SteerConfig::ADSGain::GAIN_EIGHT:{
+          str += " max voltage: 0.512\nWAS not defined";
+        }
+        break;
+        
+        case SteerConfig::ADSGain::GAIN_SIXTEEN:{
+          str += " max voltage: 0.256\nWAS not defined";
+        }
+        break;
+        
+        default:{
+          str += "voltage range not defined";
+          handle->color = ControlColor::Alizarin;
+        }
+        break;
+      }
+      ESPUI.updateLabel( labelStatusAdc, str );
     }
-    else if( steerConfig.adsGain == SteerConfig::ADSGain::GAIN_ONE ){
-      str += " max voltage: 4.096\n5v WAS-3.3k-ADS-5.6k-Gnd divider";
-    }
-    else if( steerConfig.adsGain == SteerConfig::ADSGain::GAIN_TWO ){
-      str += " max voltage: 2.048\nWAS not defined";
-    }
-    else if( steerConfig.adsGain == SteerConfig::ADSGain::GAIN_FOUR ){
-      str += " max voltage: 1.024\nWAS not defined";
-    }
-    else if( steerConfig.adsGain == SteerConfig::ADSGain::GAIN_EIGHT ){
-      str += " max voltage: 0.512\nWAS not defined";
-    }
-    else if( steerConfig.adsGain == SteerConfig::ADSGain::GAIN_SIXTEEN ){
-      str += " max voltage: 0.256\nWAS not defined";
-    } else {
-      str += "voltage range not defined";
-      handle->color = ControlColor::Alizarin;
-    }
-    ESPUI.updateLabel( labelStatusAdc, str );
+    break;
   }
   initialisation.wheelAngleInput = steerConfig.wheelAngleInput;
 
