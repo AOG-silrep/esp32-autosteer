@@ -306,6 +306,23 @@ void diagnosticWorker1Hz( void* z ) {
         }
         break;
 
+        case SteerConfig::OutputType::CanbusF0_240Controller: {
+          Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );
+          String str;
+          str.reserve( 30 );
+          str = "Canbus F0/240 Controller, SetPoint: ";
+          str += ( float )steerSetpoints.requestedSteerAngle;
+          str += "°,\ntimeout: ";
+          str += ( bool )( steerSetpoints.lastPacketReceived < safety.timeoutPoint ) ? "Yes" : "No" ;
+          str += ", enabled: ";
+          str += ( bool )steerSetpoints.enabled ? "Yes" : "No" ;
+          str += ", output: ";
+          str += ( double )steerSetpoints.pidOutput ;
+          labelStatusOutputHandle->color = ControlColor::Emerald;
+          ESPUI.updateLabel( labelStatusOutput, str );
+        }
+        break;
+
         default:
           break;
 
