@@ -277,7 +277,7 @@ void initESPUI ( void ) {
       } );
     }
 
-    {
+    if( steerConfig.outputType < SteerConfig::OutputType::Canbus13_19Controller ){
       ESPUI.addControl( ControlType::Switcher, "Autosteer Switch is Momentary*", steerConfig.steerSwitchIsMomentary ? "1" : "0", ControlColor::Wetasphalt, tab,
       []( Control * control, int id ) {
         steerConfig.steerSwitchIsMomentary = control->value.toInt() == 1;
