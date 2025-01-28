@@ -283,6 +283,14 @@ void initESPUI ( void ) {
         steerConfig.steerSwitchIsMomentary = control->value.toInt() == 1;
         setResetButtonToRed();
       } );
+    } else if( steerConfig.outputType == SteerConfig::OutputType::CanbusF0_240Controller ){
+      uint16_t sel = ESPUI.addControl( ControlType::Select, "Fendt Engage Version*", String( ( int )steerConfig.canBusFendtEngageVersion ), ControlColor::Wetasphalt, tab,
+      []( Control * control, int id ) {
+        steerConfig.canBusFendtEngageVersion = ( SteerConfig::FendtEngageVersion )control->value.toInt();
+        setResetButtonToRed();
+      } );
+      ESPUI.addControl( ControlType::Option, "0x18EEFF1C", "0", ControlColor::Alizarin, sel );
+      ESPUI.addControl( ControlType::Option, "0x18EEFF2C", "1", ControlColor::Alizarin, sel );
     }
   }
 

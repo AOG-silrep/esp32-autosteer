@@ -321,6 +321,16 @@ void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
   constexpr TickType_t xFrequency = 100;
   TickType_t xLastWakeTime = xTaskGetTickCount();
 
+  uint32_t claimISOBusAddress;
+  uint32_t engageMessage;
+  if( steerConfig.canBusFendtEngageVersion == SteerConfig::FendtEngageVersion::Hex18EEFF1C ){
+    claimISOBusAddress = 0x18EF1CC8;
+    engageMessage = 0x18EEFF1C;
+  } else if( steerConfig.canBusFendtEngageVersion == SteerConfig::FendtEngageVersion::Hex18EEFF2C ){
+    claimISOBusAddress = 0x18EF2CF0;
+    engageMessage = 0x18EEFF2C;
+  }
+
   int8_t SCK = 5, MISO = 16, MOSI = 17, CS = 0;
   hspi = new SPIClass( HSPI );
   hspi->begin( SCK, MISO, MOSI, CS );
@@ -338,17 +348,17 @@ void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
     vTaskDelete( NULL );
   }
   ISOBus.init_Mask( 0, 1, 0x00FFFF00 ); // Init first mask
-  ISOBus.init_Filt( 0, 1, 0x18EF2CF0 ); // Fendt engage
-  ISOBus.init_Filt( 1, 1, 0x18EF2CF0 ); // Fendt engage
+  ISOBus.init_Filt( 0, 1, engageMessage ); // Fendt engage
+  ISOBus.init_Filt( 1, 1, engageMessage ); // Fendt engage
 
   ISOBus.init_Mask( 1, 1, 0x00FFFF00 ); // Init second mask
-  ISOBus.init_Filt( 2, 1, 0x18EF2CF0 ); // Fendt engage
-  ISOBus.init_Filt( 3, 1, 0x18EF2CF0 ); // Fendt engage
-  ISOBus.init_Filt( 4, 1, 0x18EF2CF0 ); // Fendt engage
-  ISOBus.init_Filt( 5, 1, 0x18EF2CF0 ); // Fendt engage
+  ISOBus.init_Filt( 2, 1, engageMessage ); // Fendt engage
+  ISOBus.init_Filt( 3, 1, engageMessage ); // Fendt engage
+  ISOBus.init_Filt( 4, 1, engageMessage ); // Fendt engage
+  ISOBus.init_Filt( 5, 1, engageMessage ); // Fendt engage
   ISOBus.setMode( MCP_NORMAL );
   byte data[8] = {0x00, 0x00, 0xC0, 0x0C, 0x00, 0x17, 0x02, 0x20};
-  ISOBus.sendMsgBuf( 0x18EEFF2C, 8, data );
+  ISOBus.sendMsgBuf( claimISOBusAddress, 8, data );
   long unsigned int rxId;
   unsigned char len = 0;
   unsigned char rxBuf[8];
@@ -360,7 +370,7 @@ void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
       if(( rxId & 0x80000000 ) == 0x80000000 ){ // extended frame
         rxId = rxId & 0x1FFFFFFF;
       }
-      if( rxId == 0x18EF2CF0 ){
+      if( rxId == engageMessage ){
         if( rxBuf[0] == 0x0F && rxBuf[1] == 0x60 && rxBuf[2] == 0x01 ){
           machine.steeringEnabled = true;
         }
@@ -476,8 +486,6 @@ void initCan() {
       xTaskCreate( can13_19Sender10Hz, "can13_19Sender", 2048, NULL, 5, &canSenderHandle );
       xTaskCreate( canComplementSwitchWorker10Hz, "canComplementSwitch", 2048, NULL, 5, NULL );
     } else if( steerConfig.outputType == SteerConfig::OutputType::CanbusF0_240Controller ){
-      msgISO.MsgID = 0x18EEFF2C;
-      claimAddress( msgISO );
       xTaskCreate( canF0_240Sender10Hz, "canF0_240Sender", 2048, NULL, 5, &canSenderHandle );
       xTaskCreate( canComplementSwitchWorker10Hz, "canComplementSwitch", 2048, NULL, 5, NULL );
       xTaskCreate( canFendtEngageReceiver10Hz, "canFendtEngageReceiver", 4096, NULL, 5, NULL );

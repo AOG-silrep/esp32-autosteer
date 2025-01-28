@@ -193,6 +193,7 @@ json parseSteerConfigToJson( const SteerConfig& config ) {
   j["canBus"]["hitchThresholdHysteresis"] = config.canBusHitchThresholdHysteresis;
   j["canBus"]["rpmThreshold"] = config.canBusRpmThreshold;
   j["canBus"]["rpmThresholdHysteresis"] = config.canBusRpmThresholdHysteresis;
+  j["canBus"]["fendtEngageVersion"] = config.canBusFendtEngageVersion;
 
   j["safety"]["maxAutosteerSpeed"] = config.maxAutosteerSpeed;
   j["safety"]["speedUnits"] = config.speedUnits;
@@ -275,6 +276,7 @@ void parseJsonToSteerConfig( json& j, SteerConfig& config ) {
       config.canBusHitchThresholdHysteresis = j.value( "/canBus/hitchThresholdHysteresis"_json_pointer, steerConfigDefaults.canBusHitchThresholdHysteresis );
       config.canBusRpmThreshold = j.value( "/canBus/rpmThreshold"_json_pointer, steerConfigDefaults.canBusRpmThreshold );
       config.canBusRpmThresholdHysteresis = j.value( "/canBus/rpmThresholdHysteresis"_json_pointer, steerConfigDefaults.canBusRpmThresholdHysteresis );
+      config.canBusFendtEngageVersion = j.value( "/canBus/fendtEngageVersion"_json_pointer, steerConfigDefaults.canBusFendtEngageVersion );
 
       config.maxAutosteerSpeed = j.value( "/safety/maxAutosteerSpeed"_json_pointer, steerConfigDefaults.maxAutosteerSpeed );
       config.speedUnits = j.value( "/safety/speedUnits"_json_pointer, steerConfigDefaults.speedUnits );
