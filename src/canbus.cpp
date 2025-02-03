@@ -108,7 +108,7 @@ void showCanbusStateOnAOG( uint8_t state ){
 
 // see https://gurtam.com/files/ftp/CAN/ (especialy J1939.zip)
 void canReceiver10Hz( void* z ) {
-  constexpr TickType_t xFrequency = 100;
+  constexpr TickType_t xFrequency = 10;
   TickType_t xLastWakeTime = xTaskGetTickCount();
 
   CAN_frame_t canFrame;
@@ -188,9 +188,9 @@ void canReceiver10Hz( void* z ) {
             switch( canFrame.MsgID ){
 
               case FendtAutosteer:{ //0x0CEF2CF0
-                if( canFrame.data.u8[0] == 5 && canFrame.data.u8[1] == 26 && canFrame.data.u8[2] == 0 ){
-                    machine.steeringEnabled = false;
-                } else if( canFrame.data.u8[0] == 5 && canFrame.data.u8[1] == 10 ){
+                if( canFrame.data.u8[0] == 0x05 && canFrame.data.u8[1] == 0x1A && canFrame.data.u8[2] == 0x00 ){
+                  machine.steeringEnabled = false;
+                } else if( canFrame.data.u8[0] == 0x05 && canFrame.data.u8[1] == 0x0A ){
                   machine.canbusWasCounts = ((( int8_t ) canFrame.data.u8[4] << 8 ) + canFrame.data.u8[5] );
                   machine.lastCanbusWasMillis = millis();
                 }
@@ -292,9 +292,7 @@ void canF0_240Sender10Hz( void* z ) { // Fendt
   TickType_t xLastWakeTime = xTaskGetTickCount();
 
   for( ;; ) {
-    if( millis() - machine.lastCanbusSteeringMillis > 500 ){
-      machine.steeringEnabled = false;
-    }
+
     CAN_frame_t canFrame;
     canFrame.MsgID = 0x0CEFF02C;
     canFrame.FIR.B.FF = CAN_frame_ext;
@@ -304,8 +302,8 @@ void canF0_240Sender10Hz( void* z ) { // Fendt
     canFrame.data.u8[3] = 10;
     if( steerSetpoints.enabled == true && steerSetpoints.speed > steerConfig.minAutosteerSpeed ){
       canFrame.data.u8[2] = 3;
-      canFrame.data.u8[4] = ( uint8_t ) ( machine.valveOutput >> 8 );
-      canFrame.data.u8[5] = ( uint8_t ) machine.valveOutput;
+      canFrame.data.u8[4] = ( uint8_t ) highByte( machine.valveOutput );
+      canFrame.data.u8[5] = ( uint8_t ) lowByte( machine.valveOutput );
     } else {
       canFrame.data.u8[2] = 2;
       canFrame.data.u8[4] = 0;
@@ -323,13 +321,14 @@ void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
 
   uint32_t claimISOBusAddress;
   uint32_t engageMessage;
-  if( steerConfig.canBusFendtEngageVersion == SteerConfig::FendtEngageVersion::Hex18EEFF1C ){
-    claimISOBusAddress = 0x18EF1CC8;
-    engageMessage = 0x18EEFF1C;
-  } else if( steerConfig.canBusFendtEngageVersion == SteerConfig::FendtEngageVersion::Hex18EEFF2C ){
-    claimISOBusAddress = 0x18EF2CF0;
-    engageMessage = 0x18EEFF2C;
+  if( steerConfig.canBusFendtEngageVersion == SteerConfig::FendtEngageVersion::Hex18EF1CC8 ){
+    claimISOBusAddress = 0x98EF1CC8;
+    engageMessage = 0x18EF1CC8;
+  } else if( steerConfig.canBusFendtEngageVersion == SteerConfig::FendtEngageVersion::Hex18EF2CF0 ){
+    claimISOBusAddress = 0x98EF2CF0;
+    engageMessage = 0x18EF2CF0;
   }
+  bool canEngageMessage = false;
 
   int8_t SCK = 5, MISO = 16, MOSI = 17, CS = 0;
   hspi = new SPIClass( HSPI );
@@ -373,6 +372,10 @@ void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
       if( rxId == engageMessage ){
         if( rxBuf[0] == 0x0F && rxBuf[1] == 0x60 && rxBuf[2] == 0x01 ){
           machine.steeringEnabled = true;
+          canEngageMessage = true;
+        } else if( rxBuf[0] == 0x0F && rxBuf[1] == 0x60 && rxBuf[2] == 0x40 ){
+          machine.steeringEnabled = false;
+          canEngageMessage = false;
         }
         machine.lastMCP2515CanbusMillis = millis();
       }
@@ -385,23 +388,17 @@ void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
           str.reserve( 200 );
 
           str = String( rxId, HEX );
-          str += " Received ";
+          str += canEngageMessage ? " Engage On received " : " Engage Off received ";
           time_t elapse = millis() - machine.lastMCP2515CanbusMillis;
-          if( elapse < 1000 ){
-            str += String( elapse );
-            str += " millis";
-          } else {
-            str += String( elapse / 1000 );
-            str += " seconds";
-          }
-          str += " ago";
+          str += String( elapse / 1000 );
+          str += " seconds ago";
 
           ESPUI.updateLabel( labelStatusCanMCP2515, str );
 
           loopTimeToWaitTo = millis() + 1000;
         }
-        vTaskDelayUntil( &xLastWakeTime, xFrequency ); // only delay task when no more messages are available
     }
+    vTaskDelayUntil( &xLastWakeTime, xFrequency );
   }
 }
 
@@ -486,6 +483,12 @@ void initCan() {
       xTaskCreate( can13_19Sender10Hz, "can13_19Sender", 2048, NULL, 5, &canSenderHandle );
       xTaskCreate( canComplementSwitchWorker10Hz, "canComplementSwitch", 2048, NULL, 5, NULL );
     } else if( steerConfig.outputType == SteerConfig::OutputType::CanbusF0_240Controller ){
+      if( steerConfig.canBusFendtEngageVersion == SteerConfig::FendtEngageVersion::Hex18EF1CC8 ){
+        msgISO.MsgID = 0x18EF1CC8;
+      } else if( steerConfig.canBusFendtEngageVersion == SteerConfig::FendtEngageVersion::Hex18EF2CF0 ){
+        msgISO.MsgID = 0x18EF2CF0;
+      }
+      claimAddress( msgISO );
       xTaskCreate( canF0_240Sender10Hz, "canF0_240Sender", 2048, NULL, 5, &canSenderHandle );
       xTaskCreate( canComplementSwitchWorker10Hz, "canComplementSwitch", 2048, NULL, 5, NULL );
       xTaskCreate( canFendtEngageReceiver10Hz, "canFendtEngageReceiver", 4096, NULL, 5, NULL );

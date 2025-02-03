@@ -178,6 +178,17 @@ void autosteerWorker100Hz( void* z ) {
              steerSetpoints.speed < steerConfig.minAutosteerSpeed ) {
       
       switch( initialisation.outputType ) {
+        case SteerConfig::OutputType::CanbusF0_240Controller: {
+          pidOutputTmp = 0;
+          ledcWrite( 0, 0 );
+          ledcWrite( 1, 0 );
+          ledcWrite( 2, 0 );
+          digitalWrite( steerConfig.gpioEn, LOW );
+          machine.valveOutput = machine.canbusWasCounts;
+          steerSetpoints.pidOutput = pidOutputTmp;
+        }
+        break;
+
         case SteerConfig::OutputType::Canbus13_19Controller: {
           pidOutputTmp = 0;
           ledcWrite( 0, 0 );
@@ -302,7 +313,7 @@ void autosteerWorker100Hz( void* z ) {
           ledcWrite( 0, abs( pidOutputTmp ));
           ledcWrite( 1, 0 );
           ledcWrite( 2, 0 );
-          machine.valveOutput = pidOutputTmp;
+          machine.valveOutput = machine.canbusWasCounts - pidOutputTmp;
           steerSetpoints.pidOutput = pidOutputTmp;
         }
         break;
@@ -656,6 +667,11 @@ void initAutosteer() {
 
       case SteerConfig::OutputType::Canbus13_19Controller: {
         initialisation.outputType = SteerConfig::OutputType::Canbus13_19Controller;
+      }
+      break;
+
+      case SteerConfig::OutputType::CanbusF0_240Controller: {
+        initialisation.outputType = SteerConfig::OutputType::CanbusF0_240Controller;
       }
       break;
 

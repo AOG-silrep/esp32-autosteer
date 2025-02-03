@@ -243,9 +243,9 @@ struct SteerConfig {
   uint16_t canBusRpmThresholdHysteresis = 100;
 
   enum class FendtEngageVersion : uint8_t {
-    Hex18EEFF1C = 0,
-    Hex18EEFF2C = 1
-  } canBusFendtEngageVersion = FendtEngageVersion::Hex18EEFF1C;
+    Hex18EF1CC8 = 0,
+    Hex18EF2CF0 = 1
+  } canBusFendtEngageVersion = FendtEngageVersion::Hex18EF1CC8;
 
   float maxAutosteerSpeed = 10;
   uint8_t gpioAlarm = 4;
