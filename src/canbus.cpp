@@ -254,9 +254,9 @@ void canReceiver10Hz( void* z ) {
           }
           break;
         }
-      } else { // no Canbus info, let CPU do other stuff
-          vTaskDelayUntil( &xLastWakeTime, xFrequency );
       }
+    } else { // no Canbus info, let CPU do other stuff
+      vTaskDelayUntil( &xLastWakeTime, xFrequency );
     }
     static time_t loopTimeToWaitTo = 0;
 
