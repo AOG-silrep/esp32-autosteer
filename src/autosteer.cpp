@@ -313,7 +313,7 @@ void autosteerWorker100Hz( void* z ) {
           ledcWrite( 0, abs( pidOutputTmp ));
           ledcWrite( 1, 0 );
           ledcWrite( 2, 0 );
-          machine.valveOutput = machine.canbusWasCounts - pidOutputTmp;
+          machine.valveOutput = machine.canbusWasCounts - ( uint32_t )( pidOutputTmp * 10 ); // Fendt uses 16 bits, otherwise same as VMC family
           steerSetpoints.pidOutput = pidOutputTmp;
         }
         break;

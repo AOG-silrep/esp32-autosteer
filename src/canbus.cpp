@@ -106,6 +106,55 @@ void showCanbusStateOnAOG( uint8_t state ){
   }
 }
 
+void canFendtSteeringReceiver100Hz( void* z ) {
+  constexpr TickType_t xFrequency = 10;
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+
+  CAN_frame_t canFrame;
+  time_t lastCanbusMsgMillis;
+
+  for( ;; ) {
+    if( xQueueReceive( CAN_cfg.rx_queue, &canFrame, xFrequency ) == pdTRUE ) {
+      lastCanbusMsgMillis = millis();
+      if( canFrame.FIR.B.FF == CAN_frame_ext ) {
+        if( canFrame.MsgID == FendtAutosteer ){ //0x0CEF2CF0
+          if( canFrame.data.u8[0] == 0x05 && canFrame.data.u8[1] == 0x1A && canFrame.data.u8[2] == 0x00 ){
+            machine.steeringEnabled = false;
+          } else if( canFrame.data.u8[0] == 0x05 && canFrame.data.u8[1] == 0x0A ){
+            machine.canbusWasCounts = ((( int8_t ) canFrame.data.u8[4] << 8 ) + canFrame.data.u8[5] );
+            machine.lastCanbusWasMillis = millis();
+          }
+        }
+      }
+    } else { // no Canbus info, let CPU do other stuff
+      vTaskDelayUntil( &xLastWakeTime, xFrequency );
+    }
+    static time_t loopTimeToWaitTo = 0;
+
+    if( loopTimeToWaitTo < millis() ) {
+
+      String str;
+      str.reserve( 200 );
+
+      str = "Received ";
+      time_t elapse = millis() - lastCanbusMsgMillis;
+      if( elapse < 1000 ){
+        str += String( elapse );
+        str += " millis";
+      } else {
+        str += String( elapse / 1000 );
+        str += " seconds";
+      }
+      str += " ago";
+
+      ESPUI.updateLabel( labelStatusCanESP32, str );
+
+      loopTimeToWaitTo = millis() + 1000;
+    }
+  }
+}
+
+
 // see https://gurtam.com/files/ftp/CAN/ (especialy J1939.zip)
 void canReceiver10Hz( void* z ) {
   constexpr TickType_t xFrequency = 10;
@@ -186,16 +235,6 @@ void canReceiver10Hz( void* z ) {
           default:{
             // Can Frame ID specific, since PGNs match but message IDs don't
             switch( canFrame.MsgID ){
-
-              case FendtAutosteer:{ //0x0CEF2CF0
-                if( canFrame.data.u8[0] == 0x05 && canFrame.data.u8[1] == 0x1A && canFrame.data.u8[2] == 0x00 ){
-                  machine.steeringEnabled = false;
-                } else if( canFrame.data.u8[0] == 0x05 && canFrame.data.u8[1] == 0x0A ){
-                  machine.canbusWasCounts = ((( int8_t ) canFrame.data.u8[4] << 8 ) + canFrame.data.u8[5] );
-                  machine.lastCanbusWasMillis = millis();
-                }
-              }
-              break;
 
               case VMCAutosteer:{ //0x18EF1C00
                 if(( canFrame.data.u8[0] ) == 15 && ( canFrame.data.u8[1] ) == 96 && ( canFrame.data.u8[2] ) == 1 ){
@@ -287,8 +326,8 @@ void can13_19Sender10Hz( void* z ) { // Valtra Massey Challenger
   }
 }
 
-void canF0_240Sender10Hz( void* z ) { // Fendt
-  constexpr TickType_t xFrequency = 100;
+void canF0_240Sender50Hz( void* z ) { // Fendt
+  constexpr TickType_t xFrequency = 20;
   TickType_t xLastWakeTime = xTaskGetTickCount();
 
   for( ;; ) {
@@ -322,10 +361,10 @@ void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
   uint32_t claimISOBusAddress;
   uint32_t engageMessage;
   if( steerConfig.canBusFendtEngageVersion == SteerConfig::FendtEngageVersion::Hex18EF1CC8 ){
-    claimISOBusAddress = 0x98EF1CC8;
+    claimISOBusAddress = 0x98EEFF1C;
     engageMessage = 0x18EF1CC8;
   } else if( steerConfig.canBusFendtEngageVersion == SteerConfig::FendtEngageVersion::Hex18EF2CF0 ){
-    claimISOBusAddress = 0x98EF2CF0;
+    claimISOBusAddress = 0x98EEFF2C;
     engageMessage = 0x18EF2CF0;
   }
   bool canEngageMessage = false;
@@ -482,18 +521,17 @@ void initCan() {
       claimAddress( msgISO );
       xTaskCreate( can13_19Sender10Hz, "can13_19Sender", 2048, NULL, 5, &canSenderHandle );
       xTaskCreate( canComplementSwitchWorker10Hz, "canComplementSwitch", 2048, NULL, 5, NULL );
+      xTaskCreate( canReceiver10Hz, "canReceiver", 2048, NULL, 5, &canReceiverHandle );
     } else if( steerConfig.outputType == SteerConfig::OutputType::CanbusF0_240Controller ){
-      if( steerConfig.canBusFendtEngageVersion == SteerConfig::FendtEngageVersion::Hex18EF1CC8 ){
-        msgISO.MsgID = 0x18EF1CC8;
-      } else if( steerConfig.canBusFendtEngageVersion == SteerConfig::FendtEngageVersion::Hex18EF2CF0 ){
-        msgISO.MsgID = 0x18EF2CF0;
-      }
+      msgISO.MsgID = 0x18EEFF2C;
       claimAddress( msgISO );
-      xTaskCreate( canF0_240Sender10Hz, "canF0_240Sender", 2048, NULL, 5, &canSenderHandle );
+      xTaskCreate( canF0_240Sender50Hz, "canF0_240Sender", 2048, NULL, 5, &canSenderHandle );
       xTaskCreate( canComplementSwitchWorker10Hz, "canComplementSwitch", 2048, NULL, 5, NULL );
       xTaskCreate( canFendtEngageReceiver10Hz, "canFendtEngageReceiver", 4096, NULL, 5, NULL );
+      xTaskCreate( canFendtSteeringReceiver100Hz, "canReceiver", 2048, NULL, 5, &canReceiverHandle );
+    } else {
+      xTaskCreate( canReceiver10Hz, "canReceiver", 2048, NULL, 5, &canReceiverHandle );
     }
-    xTaskCreate( canReceiver10Hz, "canReceiver", 2048, NULL, 5, &canReceiverHandle );
     ESPUI.getControl( labelStatusCanESP32 )->color = ControlColor::Emerald;
 
   }

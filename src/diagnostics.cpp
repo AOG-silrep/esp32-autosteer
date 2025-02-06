@@ -64,8 +64,24 @@ void diagnosticWorker1Hz( void* z ) {
     {
       String str;
       str.reserve( 30 );
-      if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
-        str = "Canbus WAS counts: ";
+      if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::CanbusFendt ){
+        str = "Fendt Canbus WAS counts: ";
+        str += ( uint16_t )machine.canbusWasCounts;
+        str += "\nActual: ";
+        str += ( float )steerSetpoints.actualSteerAngle;
+        str += "°, SetPoint: ";
+        str += ( float )steerSetpoints.requestedSteerAngle;
+        str += "°\n";
+        time_t elapsed = millis() - machine.lastCanbusWasMillis;
+        if( elapsed < 1000 ){
+          str += ( time_t )elapsed;
+          str += " millis ago";
+        } else {
+          str += ( time_t )elapsed / 1000;
+          str += " seconds ago";
+        }
+      } else if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
+        str = "Valtra-Massey-Challenger Canbus WAS counts: ";
         str += ( uint16_t )machine.canbusWasCounts;
         str += "\nActual: ";
         str += ( float )steerSetpoints.actualSteerAngle;
@@ -316,8 +332,10 @@ void diagnosticWorker1Hz( void* z ) {
           str += ( bool )( steerSetpoints.lastPacketReceived < safety.timeoutPoint ) ? "Yes" : "No" ;
           str += ", enabled: ";
           str += ( bool )steerSetpoints.enabled ? "Yes" : "No" ;
-          str += ", output: ";
+          str += ", PID output: ";
           str += ( double )steerSetpoints.pidOutput ;
+          str += "\nCanbus valve setpoint: ";
+          str += ( uint16_t )machine.valveOutput ;
           labelStatusOutputHandle->color = ControlColor::Emerald;
           ESPUI.updateLabel( labelStatusOutput, str );
         }
