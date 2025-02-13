@@ -44,15 +44,28 @@ void saveDiagnostics() {
 
 void loadSavedConfig() {
   {
-    auto j = loadJsonFromFile( "/config.json" );
-    parseJsonToSteerConfig( j, steerConfig );
+    if( SPIFFS.exists( "/autosteer.json" ) ) {
+      auto j = loadJsonFromFile( "/autosteer.json" );
+      parseJsonToSteerConfig( j, steerConfig );
+    }
+    else if( SPIFFS.exists( "/config.json" ) ){ // import from old config
+      auto j = loadJsonFromFile( "/config.json" );
+      parseJsonToSteerConfig( j, steerConfig );
+      saveJsonToFile( j, "/autosteer.json" ); // auto save file for next boot
+      SPIFFS.remove( "/config.json" ); // remove config.json ->
+      //deprecated since it was a universal name with a risk of sharing wrong config to other PCBs
+    }
+    else{
+      json j;
+      parseJsonToSteerConfig( j, steerConfig );
+    }
   }
 }
 
 void saveConfig() {
   {
     const auto j = parseSteerConfigToJson( steerConfig );
-    saveJsonToFile( j, "/config.json" );
+    saveJsonToFile( j, "/autosteer.json" );
   }
 }
 
