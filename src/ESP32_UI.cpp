@@ -41,8 +41,8 @@ void addWasInputSelection( uint16_t parent ) {
   ESPUI.addControl( ControlType::Option, "ADS1115 A0/A1 Differential", String( ( uint8_t )SteerConfig::AnalogIn::ADS1115A0A1Differential ), ControlColor::Alizarin, parent );
   ESPUI.addControl( ControlType::Option, "Deere Variable Duty Cycle", String( ( uint16_t )SteerConfig::AnalogIn::JDVariableDuty ), ControlColor::Alizarin, parent );
   if( steerConfig.canBusEnabled ) {
-      ESPUI.addControl( ControlType::Option, "Canbus: Valtra-Massey-Challenger", String( ( uint16_t )SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ), ControlColor::Alizarin, parent );
-      ESPUI.addControl( ControlType::Option, "Canbus: Fendt", String( ( uint16_t )SteerConfig::AnalogIn::CanbusFendt ), ControlColor::Alizarin, parent );
+    ESPUI.addControl( ControlType::Option, "Canbus: Valtra-Massey-Challenger", String( ( uint16_t )SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ), ControlColor::Alizarin, parent );
+    ESPUI.addControl( ControlType::Option, "Canbus: Fendt", String( ( uint16_t )SteerConfig::AnalogIn::CanbusFendt ), ControlColor::Alizarin, parent );
   }
 }
   
