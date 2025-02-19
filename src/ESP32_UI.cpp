@@ -685,7 +685,7 @@ void initESPUI ( void ) {
   }
 
   char autosteerDownloadHTML [100];
-  sprintf( downloadFilename, "/%s.json", steerConfig.hostname );
+  sprintf( downloadFilename, "/%s steering.json", steerConfig.hostname );
   sprintf( autosteerDownloadHTML, "<a href='%s'>Configuration</a>", downloadFilename );
 
   // Default Configurations Tab
