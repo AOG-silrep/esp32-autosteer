@@ -95,8 +95,9 @@ void autosteerWorker100Hz( void* z ) {
     safety.timeoutPoint = millis() - Timeout;
 
     if( steerSetpoints.enabled == true ){
-      if(  dtcAutosteerPrevious == false && machine.steerSupplyVoltage < 14500 ){  // 10.8 volts
-          diagnostics.steerEnabledWithNoPower += 1;
+      if( steerConfig.wheelAngleInput < SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
+        if( dtcAutosteerPrevious == false && machine.steerSupplyVoltage < 14500 ){  // 10.8 volts
+            diagnostics.steerEnabledWithNoPower += 1;
 
           Control* labelSteerEngagedFaultsHandle = ESPUI.getControl( labelSteerEngagedFaults );
           String str;
