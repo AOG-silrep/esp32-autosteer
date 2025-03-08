@@ -99,15 +99,16 @@ void autosteerWorker100Hz( void* z ) {
         if( dtcAutosteerPrevious == false && machine.steerSupplyVoltage < 14500 ){  // 10.8 volts
             diagnostics.steerEnabledWithNoPower += 1;
 
-          Control* labelSteerEngagedFaultsHandle = ESPUI.getControl( labelSteerEngagedFaults );
-          String str;
-          str.reserve( 30 );
-          str = "Number of faults: ";
-          str += ( int8_t ) diagnostics.steerEnabledWithNoPower;
-          str += "\nFault active since startup: Yes";
-          labelSteerEngagedFaultsHandle->color = ControlColor::Alizarin;
-          ESPUI.updateLabel( labelSteerEngagedFaults, str );
-          saveDiagnostics();
+            Control* labelSteerEngagedFaultsHandle = ESPUI.getControl( labelSteerEngagedFaults );
+            String str;
+            str.reserve( 30 );
+            str = "Number of faults: ";
+            str += ( int8_t ) diagnostics.steerEnabledWithNoPower;
+            str += "\nFault active since startup: Yes";
+            labelSteerEngagedFaultsHandle->color = ControlColor::Alizarin;
+            ESPUI.updateLabel( labelSteerEngagedFaults, str );
+            saveDiagnostics();
+        }
       }
     }
     dtcAutosteerPrevious = steerSetpoints.enabled;
@@ -680,6 +681,25 @@ void initAutosteer() {
         break;
 
     }
+  }
+
+  if( machine.canbusSteeringActive == true ){
+    Control* labelSteerEngagedFaultsHandle = ESPUI.getControl( labelSteerEngagedFaults );
+    String str;
+    str.reserve( 30 );
+    str = "N/A in CANbus steering";
+    labelSteerEngagedFaultsHandle->value = str;
+    labelSteerEngagedFaultsHandle->color = ControlColor::Emerald;
+    ESPUI.updateLabel( labelSteerEngagedFaults, str );
+  }
+  if( machine.canbusSteeringActive == true ){
+    Control* labelSupplyVoltageHandle = ESPUI.getControl( labelSupplyVoltage );
+    String str;
+    str.reserve( 30 );
+    str = "N/A in CANbus steering";
+    labelSupplyVoltageHandle->value = str;
+    labelSupplyVoltageHandle->color = ControlColor::Emerald;
+    ESPUI.updateLabel( labelSupplyVoltage, str );
   }
 
   pinMode( steerConfig.gpioWorkswitch, INPUT_PULLUP );
