@@ -418,7 +418,7 @@ void autosteerWorker100Hz( void* z ) {
 
           data[11] |= machine.steeringEnabled ? 0 : 2;
       }
-        //data[12] = 0; // PWM ?
+      data[12] = pidOutputTmp; // PWM
       //add the checksum
       int CRCtoAOG = 0;
       for (byte i = 2; i < sizeof(data) - 1; i++)
