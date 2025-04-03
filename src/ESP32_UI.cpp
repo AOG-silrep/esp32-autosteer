@@ -330,7 +330,7 @@ void initESPUI ( void ) {
         steerConfig.wheelAnglePositionZero = control->value.toInt();
       } );
       ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
-      ESPUI.addControl( ControlType::Max, "Max", "26000", ControlColor::Peterriver, num );
+      ESPUI.addControl( ControlType::Max, "Max", "65535", ControlColor::Peterriver, num );
       ESPUI.addControl( ControlType::Step, "Step", "1", ControlColor::Peterriver, num );
     }
 
