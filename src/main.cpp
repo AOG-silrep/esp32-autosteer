@@ -108,8 +108,8 @@ void setup( void ) {
   * for example begin("ESPUI Control", "username", "password")
   */
 
-  if( steerConfig.outputType >= SteerConfig::OutputType::Canbus13_19Controller ||
-      steerConfig.wheelAngleInput >= SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
+  if( ( SteerConfig::OutputType ) steerConfig.outputType >= SteerConfig::OutputType::Canbus13_19Controller ||
+      ( SteerConfig::AnalogIn ) steerConfig.wheelAngleInput >= SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
     machine.canbusSteeringActive = true;
   }
   initESPUI();

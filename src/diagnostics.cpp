@@ -39,7 +39,7 @@ void diagnosticWorker1Hz( void* z ) {
       }
       ESPUI.updateLabel( labelSafetyDisableAutosteer, str );
     }
-    if( machine.canbusSteeringActive = false ){ //legacy steering, no voltage during Canbus steering
+    if( machine.canbusSteeringActive == false ){ //legacy steering, no voltage during Canbus steering
       String str;
       str.reserve( 30 );
       str = ( uint16_t ) machine.steerSupplyVoltage ;
