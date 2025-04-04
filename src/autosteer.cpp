@@ -698,8 +698,7 @@ void initAutosteer() {
     labelSteerEngagedFaultsHandle->value = str;
     labelSteerEngagedFaultsHandle->color = ControlColor::Emerald;
     ESPUI.updateLabel( labelSteerEngagedFaults, str );
-  }
-  if( machine.canbusSteeringActive == true ){
+
     Control* labelSupplyVoltageHandle = ESPUI.getControl( labelSupplyVoltage );
     String str;
     str.reserve( 30 );
