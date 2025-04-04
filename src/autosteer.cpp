@@ -96,18 +96,18 @@ void autosteerWorker100Hz( void* z ) {
 
     if( steerSetpoints.enabled == true ){
       if( steerConfig.wheelAngleInput < SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
-        if( dtcAutosteerPrevious == false && machine.steerSupplyVoltage < 2172 )  // 10.8 volts
-            diagnostics.steerEnabledWithNoPower += 1;
+        if( dtcAutosteerPrevious == false && machine.steerSupplyVoltage < 2172 ){  // 10.8 volts
+          diagnostics.steerEnabledWithNoPower += 1;
 
-            Control* labelSteerEngagedFaultsHandle = ESPUI.getControl( labelSteerEngagedFaults );
-            String str;
-            str.reserve( 30 );
-            str = "Number of faults: ";
-            str += ( int8_t ) diagnostics.steerEnabledWithNoPower;
-            str += "\nFault active since startup: Yes";
-            labelSteerEngagedFaultsHandle->color = ControlColor::Alizarin;
-            ESPUI.updateLabel( labelSteerEngagedFaults, str );
-            saveDiagnostics();
+          Control* labelSteerEngagedFaultsHandle = ESPUI.getControl( labelSteerEngagedFaults );
+          String str;
+          str.reserve( 30 );
+          str = "Number of faults: ";
+          str += ( int8_t ) diagnostics.steerEnabledWithNoPower;
+          str += "\nFault active since startup: Yes";
+          labelSteerEngagedFaultsHandle->color = ControlColor::Alizarin;
+          ESPUI.updateLabel( labelSteerEngagedFaults, str );
+          saveDiagnostics();
         }
       }
     }
