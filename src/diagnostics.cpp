@@ -39,7 +39,7 @@ void diagnosticWorker1Hz( void* z ) {
       }
       ESPUI.updateLabel( labelSafetyDisableAutosteer, str );
     }
-    if( machine.canbusSteeringActive == false ){ //legacy steering
+    if( machine.canbusSteeringActive == false ){ // voltage monitoring during legacy steering only
       String str;
       str.reserve( 30 );
       str = ( uint16_t ) machine.steerSupplyVoltage ;
@@ -50,11 +50,6 @@ void diagnosticWorker1Hz( void* z ) {
       str += " volts min while steering\n";
       str += ( double ) ( ( double ) ( diagnostics.steerSupplyVoltageMax * 4.54 ) / 913 );
       str += " volts max while steering";
-      ESPUI.updateLabel( labelSupplyVoltage, str );
-    } else { // no voltage monitoring during Canbus steering
-      String str;
-      str.reserve( 30 );
-      str = "N/A in Canbus steering";
       ESPUI.updateLabel( labelSupplyVoltage, str );
     }
     {

@@ -691,20 +691,11 @@ void initAutosteer() {
   }
 
   if( machine.canbusSteeringActive == true ){
-    Control* labelSteerEngagedFaultsHandle = ESPUI.getControl( labelSteerEngagedFaults );
     String str;
     str.reserve( 30 );
     str = "N/A in CANbus steering";
-    labelSteerEngagedFaultsHandle->value = str;
-    labelSteerEngagedFaultsHandle->color = ControlColor::Emerald;
+    
     ESPUI.updateLabel( labelSteerEngagedFaults, str );
-
-    Control* labelSupplyVoltageHandle = ESPUI.getControl( labelSupplyVoltage );
-    String str;
-    str.reserve( 30 );
-    str = "N/A in CANbus steering";
-    labelSupplyVoltageHandle->value = str;
-    labelSupplyVoltageHandle->color = ControlColor::Emerald;
     ESPUI.updateLabel( labelSupplyVoltage, str );
   }
 
