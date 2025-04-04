@@ -218,6 +218,16 @@ void diagnosticWorker1Hz( void* z ) {
           str += "\nDeere variable duty encoder: ";
           str += ( uint16_t )( abs( machine.DeereDutyAverage - machine.DeereDutyCycle ) );
         }
+        break;
+      }
+      str += " ";
+      time_t elapsed = millis() - machine.lastDisengageMillis;
+      if( elapsed < 1000 ){
+        str += ( time_t )elapsed;
+        str += " millis ago";
+      } else {
+        str += ( time_t )elapsed / 1000;
+        str += " seconds ago";
       }
       ESPUI.updateLabel( labelSwitchStates, str );
     }

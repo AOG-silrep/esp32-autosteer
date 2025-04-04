@@ -79,6 +79,7 @@ extern Safety safety;
 
 struct Machine {
   bool disengagedBySteeringWheel = false; // disengaged by steering wheel > for diagnostic page
+  time_t lastDisengageMillis = 0; // last time disengage input changed
   bool canbusSteeringActive = false; // traditional or Canbus steering
   bool steeringEnabled = false; // ESP32 internal steering state > sent to AOG
   bool workswitchState = false; // current state of workswitch

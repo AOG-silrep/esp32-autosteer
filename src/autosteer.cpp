@@ -489,7 +489,12 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
     }
 
     if( steerConfig.disengageSwitchType == SteerConfig::DisengageSwitchType::Hydraulic ){
-      if( digitalRead( steerConfig.gpioDisengage ) != steerConfig.hydraulicSwitchActiveLow ){
+      disengageState = digitalRead( steerConfig.gpioDisengage );
+      if( disengagePrevState != disengageState ){
+        disengagePrevState = disengageState;
+        machine.lastDisengageMillis = millis();
+      }
+      if( disengageState != steerConfig.hydraulicSwitchActiveLow ){
         machine.steeringEnabled = false;
         machine.disengagedBySteeringWheel = true;
       }
@@ -501,6 +506,7 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
           disengageActivityMillis = millis();
         }
         machine.handwheelPulseCount += 1;
+        machine.lastDisengageMillis = millis();
       }
       if( millis() - disengageActivityMillis < steerConfig.disengageFrameMillis ) {
         if( ( machine.handwheelPulseCount / 2 ) >= steerConfig.disengageFramePulses ) { // divide by two to compensate for LOW and HIGH
@@ -523,6 +529,7 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
       if( abs( dutyAverage - dutyCycle ) > steerConfig.JDVariableDutyChange ){
         machine.steeringEnabled = false;
         machine.disengagedBySteeringWheel = true;
+        machine.lastDisengageMillis = millis();
       }
       machine.DeereDutyCycle = dutyCycle;
       machine.DeereDutyAverage = dutyAverage;
@@ -534,6 +541,7 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
           machine.steeringEnabled = false;
           machine.disengagedBySteeringWheel = true;
         }
+        machine.lastDisengageMillis = millis();
       } else {
         disengageActivityMillis = millis();
       }
