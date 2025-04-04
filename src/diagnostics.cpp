@@ -210,7 +210,7 @@ void diagnosticWorker1Hz( void* z ) {
 
         case SteerConfig::DisengageSwitchType::Hydraulic: {
           str += "\nHydraulic disengage switch: ";
-          str += ( bool )( digitalRead( steerConfig.gpioDisengage ) == steerConfig.hydraulicSwitchActiveLow ) ? "On" : "Off" ;
+          str += ( bool )( digitalRead( steerConfig.gpioDisengage ) != steerConfig.hydraulicSwitchActiveLow ) ? "On" : "Off" ;
         }
         break;
 
