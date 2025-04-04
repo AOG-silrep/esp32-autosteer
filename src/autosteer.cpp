@@ -96,7 +96,7 @@ void autosteerWorker100Hz( void* z ) {
 
     if( steerSetpoints.enabled == true ){
       if( steerConfig.wheelAngleInput < SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
-        if( dtcAutosteerPrevious == false && machine.steerSupplyVoltage < 14500 ){  // 10.8 volts
+        if( dtcAutosteerPrevious == false && machine.steerSupplyVoltage < 2172 )  // 10.8 volts
             diagnostics.steerEnabledWithNoPower += 1;
 
             Control* labelSteerEngagedFaultsHandle = ESPUI.getControl( labelSteerEngagedFaults );
