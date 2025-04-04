@@ -63,7 +63,6 @@ volatile time_t offTime;
 volatile uint16_t dutyCycle;
 uint16_t dutyAverage;
 
-time_t switchChangeMillis = millis();
 bool ditherDirection = false;
 bool dtcAutosteerPrevious = false;
 
@@ -449,10 +448,10 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
   for( ;; ) {
     bool state = digitalRead( ( uint8_t )steerConfig.gpioSteerswitch);
     if( state != previousState ){
-      switchChangeMillis = millis();
+      machine.lastAutosteerMillis = millis();
       previousState = state;
     }
-    if( millis() - switchChangeMillis > 50 and switchState != state ){
+    if( millis() - machine.lastAutosteerMillis > 50 and switchState != state ){
       switchState = state;
       lastSwitchChangeMillis = millis();
       if( steerConfig.steerSwitchIsMomentary ){

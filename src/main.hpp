@@ -82,6 +82,7 @@ struct Machine {
   time_t lastDisengageMillis = 0; // last time disengage input changed
   bool canbusSteeringActive = false; // traditional or Canbus steering
   bool steeringEnabled = false; // ESP32 internal steering state > sent to AOG
+  time_t lastAutosteerMillis = 0; // last time autosteer input changed
   bool workswitchState = false; // current state of workswitch
   uint8_t canbusSteeringState = 0; // machine canbus steering state (receive only)
   uint16_t valveOutput; // output of the pid controller, after valve specific processing

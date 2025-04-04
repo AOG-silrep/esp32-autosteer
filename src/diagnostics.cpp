@@ -189,7 +189,15 @@ void diagnosticWorker1Hz( void* z ) {
         } else {
           str = "Maintained steer switch: ";
         }
-        str += ( bool )( digitalRead( steerConfig.gpioSteerswitch ) == steerConfig.steerswitchActiveLow ) ? "On" : "Off" ;
+        str += ( bool )( digitalRead( steerConfig.gpioSteerswitch ) == steerConfig.steerswitchActiveLow ) ? "On " : "Off " ;
+        time_t elapsed = millis() - machine.lastAutosteerMillis;
+        if( elapsed < 1000 ){
+          str += ( time_t )elapsed;
+          str += " millis ago";
+        } else {
+          str += ( time_t )elapsed / 1000;
+          str += " seconds ago";
+        }
       }
       if( steerConfig.workswitchType > SteerConfig::WorkswitchType::Gpio ){ // Canbus function
         str += "\nCanbus work function: ";
