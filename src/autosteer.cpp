@@ -616,6 +616,9 @@ void initAutosteer() {
             }
           } else {
             machine.autosteerSafetyLock = false;
+            if( millis() - machine.lastAutosteerMillis > 200 && machine.steeringEnabled == true ) {
+              machine.steeringEnabled = false; // disabled by AOG software button, don't show AOG enabled message timeout
+            }
           }
           steerSetpoints.requestedSteerAngle = (( double ) ((( int16_t )data[8]) | (( int8_t )data[9] << 8 ))) * 0.01; //horrible code to make negative doubles work
 
