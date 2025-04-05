@@ -480,6 +480,7 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
           machine.steeringEnabled = false;
         } else if( steerSetpoints.speed > steerConfig.maxAutosteerSpeed ) {
           machine.steeringEnabled = false;
+          safety.autosteerDisabledByMaxEngageSpeed = true;
         } else {
           machine.steeringEnabled = true;
           machine.disengagedBySteeringWheel = false;
