@@ -79,7 +79,9 @@ extern Safety safety;
 
 struct Machine {
   bool disengagedBySteeringWheel = false; // disengaged by steering wheel > for diagnostic page
+  bool disengageInput = false;    // disengage input, whether physical switches or CANbus
   time_t lastDisengageMillis = 0; // last time disengage input changed
+  bool autosteerSafetyLock = false; // a condition exists that autosteer should not be engaged
   bool canbusSteeringActive = false; // traditional or Canbus steering
   bool steeringEnabled = false; // ESP32 internal steering state > sent to AOG
   time_t lastAutosteerMillis = 0; // last time autosteer input changed
@@ -296,6 +298,7 @@ struct SteerSetpoints {
   double requestedSteerAngle = 0;
 
   bool enabled = false;
+  time_t lastEngagedChangeMillis = 0;
   float receivedRoll = 0;
   double actualSteerAngle = 0;
   double wheelAngleCounts = 0;

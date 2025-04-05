@@ -63,6 +63,7 @@ volatile time_t offTime;
 volatile uint16_t dutyCycle;
 uint16_t dutyAverage;
 
+bool previousAogEnabledState = false;
 bool ditherDirection = false;
 bool dtcAutosteerPrevious = false;
 
@@ -176,7 +177,8 @@ void autosteerWorker100Hz( void* z ) {
     // check for timeout, data from AgOpenGPS, safety disable, and mininum autosteer speed
     else if( steerSetpoints.lastPacketReceived < safety.timeoutPoint ||
              steerSetpoints.enabled == false ||
-             steerSetpoints.speed < steerConfig.minAutosteerSpeed ) {
+             steerSetpoints.speed < steerConfig.minAutosteerSpeed ||
+             machine.autosteerSafetyLock == true ) {
       
       switch( initialisation.outputType ) {
         case SteerConfig::OutputType::CanbusF0_240Controller: {
@@ -414,8 +416,13 @@ void autosteerWorker100Hz( void* z ) {
             steerConfig.manualSteerState = false;
             ESPUI.updateSwitcher( manualValveSwitcher, false );
           }
+      }
 
-          data[11] |= machine.steeringEnabled ? 0 : 2;
+      // when user presses AOG software button and it is unsafe to autosteer, disable autosteer again
+      if( millis() - steerSetpoints.lastEngagedChangeMillis < 300 && machine.autosteerSafetyLock == true ) {
+        data[11] |= 0; // send `on` for 300 millis then send actual state again afterwards
+      } else {
+        data[11] |= machine.steeringEnabled ? 0 : 2;
       }
       data[12] = pidOutputTmp; // PWM
       //add the checksum
@@ -488,14 +495,16 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
     }
 
     if( steerConfig.disengageSwitchType == SteerConfig::DisengageSwitchType::Hydraulic ){
-      disengageState = digitalRead( steerConfig.gpioDisengage );
       if( disengagePrevState != disengageState ){
         disengagePrevState = disengageState;
         machine.lastDisengageMillis = millis();
       }
       if( disengageState != steerConfig.hydraulicSwitchActiveLow ){
+        machine.disengageInput = true;
         machine.steeringEnabled = false;
         machine.disengagedBySteeringWheel = true;
+      } else {
+        machine.disengageInput = false;
       }
     }
     else if( steerConfig.disengageSwitchType == SteerConfig::DisengageSwitchType::Encoder ) {
@@ -512,8 +521,12 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
           machine.steeringEnabled = false;
           machine.handwheelPulseCount = 0;
           machine.disengagedBySteeringWheel = true;
+          machine.disengageInput = true;
         }
-      } else { machine.handwheelPulseCount = 0; }
+      } else {
+        machine.handwheelPulseCount = 0; 
+        machine.disengageInput = false;
+      }
     }
     else if( steerConfig.disengageSwitchType == SteerConfig::DisengageSwitchType::JDVariableDuty ){
       uint16_t dutyCycle = abs( onTime - offTime );
@@ -529,6 +542,9 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
         machine.steeringEnabled = false;
         machine.disengagedBySteeringWheel = true;
         machine.lastDisengageMillis = millis();
+        machine.disengageInput = true;
+      } else {
+        machine.disengageInput = false;
       }
       machine.DeereDutyCycle = dutyCycle;
       machine.DeereDutyAverage = dutyAverage;
@@ -544,6 +560,9 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
       } else {
         disengageActivityMillis = millis();
       }
+    }
+    if( steerSetpoints.enabled == true && ( machine.disengageInput == true || steerSetpoints.speed > steerConfig.maxAutosteerSpeed )){
+      machine.autosteerSafetyLock = true;
     }
     vTaskDelayUntil( &xLastWakeTime, xFrequency );
   }
@@ -581,6 +600,23 @@ void initAutosteer() {
             steerSetpoints.speed *= 0.62;
           }
           steerSetpoints.enabled = data[7];
+          if( steerSetpoints.enabled == true && ( machine.disengageInput == true || steerSetpoints.speed > steerConfig.maxAutosteerSpeed )){
+            machine.autosteerSafetyLock = true;
+          }
+          if( previousAogEnabledState != steerSetpoints.enabled ){
+            previousAogEnabledState = steerSetpoints.enabled;
+            steerSetpoints.lastEngagedChangeMillis = millis();
+          }
+          if( steerSetpoints.enabled == true ){
+            if( machine.steeringEnabled == false && machine.autosteerSafetyLock == false ){
+              if( millis() - steerSetpoints.lastEngagedChangeMillis > 150 && millis() - machine.lastAutosteerMillis > 1000 ){
+                // user pressed AOG autosteer button in software, we need to ACK so AOG listens to disengage
+                machine.steeringEnabled = true;
+              }
+            }
+          } else {
+            machine.autosteerSafetyLock = false;
+          }
           steerSetpoints.requestedSteerAngle = (( double ) ((( int16_t )data[8]) | (( int8_t )data[9] << 8 ))) * 0.01; //horrible code to make negative doubles work
 
           steerSetpoints.lastPacketReceived = millis();

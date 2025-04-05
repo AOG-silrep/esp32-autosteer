@@ -222,12 +222,21 @@ void canReceiver10Hz( void* z ) {
             machine.lastCanbusSteeringMillis = millis();
             if( machine.canbusSteeringState == 0x14 ){ // we need the steer enabled confirmation from the machine before disengaging again
               readyToDisengage = true;
-            } else if( machine.canbusSteeringState == 0x00 || machine.canbusSteeringState == 0x20 ) { // handwheel activity or stagnant always disengages
+              machine.disengageInput = false;
+            } else if( machine.canbusSteeringState == 0x00 ) { // handwheel activity disengages
               machine.steeringEnabled = false;
               readyToDisengage = false;
+              machine.disengageInput = true;
+              machine.lastDisengageMillis = millis();
+            } else if ( machine.canbusSteeringState == 0x20 ) { // stagnant
+              machine.steeringEnabled = false;
+              readyToDisengage = false;
+              machine.disengageInput = false;
             } else if( readyToDisengage == true ) { // going from 'engaged' to anything else will disengage
               machine.steeringEnabled = false;
               readyToDisengage = false;
+              machine.disengageInput = true;
+              machine.lastDisengageMillis = millis();
             }
           }
           break;
@@ -412,9 +421,11 @@ void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
         if( rxBuf[0] == 0x0F && rxBuf[1] == 0x60 && rxBuf[2] == 0x01 ){
           machine.steeringEnabled = true;
           canEngageMessage = true;
+          machine.disengageInput = false;
         } else if( rxBuf[0] == 0x0F && rxBuf[1] == 0x60 && rxBuf[2] == 0x40 ){
           machine.steeringEnabled = false;
           canEngageMessage = false;
+          machine.disengageInput = true;
         }
         machine.lastMCP2515CanbusMillis = millis();
       }
