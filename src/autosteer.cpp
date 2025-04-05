@@ -611,7 +611,9 @@ void initAutosteer() {
             if( machine.steeringEnabled == false && machine.autosteerSafetyLock == false ){
               if( millis() - steerSetpoints.lastEngagedChangeMillis > 150 && millis() - machine.lastAutosteerMillis > 1000 ){
                 // user pressed AOG autosteer button in software, we need to ACK so AOG listens to disengage
-                machine.steeringEnabled = true;
+                machine.steeringEnabled = true; // ACKNOWLEDGE
+                machine.disengagedBySteeringWheel = false;
+                safety.AOGEnableAutosteerTimeout = false;
               }
             }
           } else {
