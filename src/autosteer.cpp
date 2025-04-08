@@ -562,7 +562,7 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
         disengageActivityMillis = millis();
       }
     }
-    if( steerSetpoints.enabled == true && ( machine.disengageInput == true || steerSetpoints.speed > steerConfig.maxAutosteerSpeed )){
+    if( steerSetpoints.enabled == true && machine.disengageInput == true ) {
       machine.autosteerSafetyLock = true;
     }
     vTaskDelayUntil( &xLastWakeTime, xFrequency );
@@ -601,7 +601,12 @@ void initAutosteer() {
             steerSetpoints.speed *= 0.62;
           }
           steerSetpoints.enabled = data[7];
-          if( steerSetpoints.enabled == true && ( machine.disengageInput == true || steerSetpoints.speed > steerConfig.maxAutosteerSpeed )){
+          if( steerSetpoints.enabled == true && previousAogEnabledState == false  ) {
+            if( steerSetpoints.speed > steerConfig.maxAutosteerSpeed ) {
+              machine.autosteerSafetyLock = true;
+            }
+          }
+          if( steerSetpoints.enabled == true && machine.disengageInput == true ){
             machine.autosteerSafetyLock = true;
           }
           if( previousAogEnabledState != steerSetpoints.enabled ){
