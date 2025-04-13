@@ -62,7 +62,7 @@ void initESPUI ( void ) {
   []( Control * control, int id ) {
     if( id == B_UP ) {
       saveConfig();
-      SPIFFS.end();
+      LittleFS.end();
       if( steerConfig.canBusEnabled ){
         ESP32Can.CANStop();
       }
@@ -722,13 +722,13 @@ void initESPUI ( void ) {
     Serial.println( " for download" );
 
     char ibuffer[64];
-    File f1 = SPIFFS.open( "/autosteer.json", "r" );    //open source file to read
+    File f1 = LittleFS.open( "/autosteer.json", "r" );    //open source file to read
     if ( !f1 ){
       Serial.println( "/autosteer.json not available for copying" );
       return;
     }
 
-    File f2 = SPIFFS.open( downloadFilename, "w" );    //open destination file to write
+    File f2 = LittleFS.open( downloadFilename, "w" );    //open destination file to write
     if ( !f2 ){
       Serial.print( downloadFilename );
       Serial.println( " could not be created" );
@@ -750,9 +750,9 @@ void initESPUI ( void ) {
     f1.close();
     Serial.println( "File creation successful, downloading..." );
     delay( 5 );
-    request->send( SPIFFS, downloadFilename, "application/json", true );
+    request->send( LittleFS, downloadFilename, "application/json", true );
     delay( 5 );
-    SPIFFS.remove( downloadFilename );
+    LittleFS.remove( downloadFilename );
   } );
   
   // upload a file to /upload-config
@@ -760,7 +760,7 @@ void initESPUI ( void ) {
     request->send( 200 );
   }, [tabConfigurations]( AsyncWebServerRequest * request, String filename, size_t index, uint8_t* data, size_t len, bool final ) {
     if( !index ) {
-      request->_tempFile = SPIFFS.open( "/autosteer.json", "w" );
+      request->_tempFile = LittleFS.open( "/autosteer.json", "w" );
     }
 
     if( request->_tempFile ) {

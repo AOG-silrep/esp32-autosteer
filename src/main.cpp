@@ -66,8 +66,8 @@ void setup( void ) {
 
   Wire.begin( ( int )steerConfig.gpioSDA, ( int )steerConfig.gpioSCL, steerConfig.i2cBusSpeed );
 
-  if( !SPIFFS.begin( true ) ) {
-    Serial.println( "SPIFFS Mount Failed" );
+  if( !LittleFS.begin( true ) ) {
+    Serial.println( "LittleFS Mount Failed" );
     return;
   }
 
@@ -96,7 +96,7 @@ void setup( void ) {
 
   /*
   * .begin loads and serves all files from PROGMEM directly.
-  * If you want to serve the files from SPIFFS use ESPUI.beginSPIFFS
+  * If you want to serve the files from LittleFS use ESPUI.beginLittleFS
   * (.prepareFileSystem has to be run in an empty sketch before)
   */
 
