@@ -418,7 +418,7 @@ void initESPUI ( void ) {
     }
 
     {
-      uint16_t num = ESPUI.addControl( ControlType::Number, "Ackermann (%)", String( steerConfig.ackermann ), ControlColor::Peterriver, tab,
+      uint16_t num = ESPUI.addControl( ControlType::Number, "% Ackermann (above 100)", String( steerConfig.ackermann ), ControlColor::Peterriver, tab,
       []( Control * control, int id ) {
         steerConfig.ackermann = control->value.toFloat();
       } );
@@ -428,7 +428,7 @@ void initESPUI ( void ) {
     }
 
     {
-      uint16_t sel = ESPUI.addControl( ControlType::Select, "Ackermann - Wheel with WAS has smaller radius", String( ( int )steerConfig.ackermannAboveZero ), ControlColor::Peterriver, tab,
+      uint16_t sel = ESPUI.addControl( ControlType::Select, "Ackermann - Wheel with WAS has larger radius", String( ( int )steerConfig.ackermannAboveZero ), ControlColor::Peterriver, tab,
       []( Control * control, int id ) {
         steerConfig.ackermannAboveZero = control->value.toInt() == 1;
       } );
