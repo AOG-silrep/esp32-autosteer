@@ -45,6 +45,10 @@ constexpr uint16_t j1939PgnFHS = 65094;
 constexpr uint16_t j1939PgnRPTO = 65091;
 constexpr uint16_t j1939PgnFPTO = 65092;
 
+constexpr uint16_t j1939PgnAH1 = 65072;
+constexpr uint16_t j1939PgnAH2 = 65073;
+constexpr uint16_t j1939PgnAH3 = 65074;
+
 constexpr uint16_t j1939PgnVMCWas = 44032;
 constexpr uint32_t VMCAutosteer = 0x18EF1C00;
 constexpr uint32_t FendtAutosteer = 0x0CEF2CF0;
@@ -210,6 +214,24 @@ void canReceiver10Hz( void* z ) {
           // Secondary or Front Power Take off Output Shaft
           case j1939PgnFPTO: {
             steerCanData.frontPtoRpm = ( canFrame.data.u8[1] << 8 | canFrame.data.u8[0] ) / 8;
+          }
+          break;
+
+          // Auxiliary Hydraulic 1
+          case j1939PgnAH1: {
+            steerCanData.auxiliaryHydraulic1 = ( canFrame.data.u8[1] << 8 | canFrame.data.u8[0] ) / 8;
+          }
+          break;
+
+          // Auxiliary Hydraulic 2
+          case j1939PgnAH2: {
+            steerCanData.auxiliaryHydraulic2 = ( canFrame.data.u8[1] << 8 | canFrame.data.u8[0] ) / 8;
+          }
+          break;
+
+          // Auxiliary Hydraulic 3
+          case j1939PgnAH3: {
+            steerCanData.auxiliaryHydraulic3 = ( canFrame.data.u8[1] << 8 | canFrame.data.u8[0] ) / 8;
           }
           break;
 

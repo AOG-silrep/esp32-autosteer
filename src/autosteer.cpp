@@ -393,6 +393,24 @@ void autosteerWorker100Hz( void* z ) {
               hysteresis = steerConfig.canBusRpmThresholdHysteresis;
               break;
 
+            case SteerConfig::WorkswitchType::AuxiliaryHydraulic1:
+              value = steerCanData.frontHitchPosition;
+              threshold = steerConfig.canBusHitchThreshold;
+              hysteresis = steerConfig.canBusHitchThresholdHysteresis;
+              break;
+
+            case SteerConfig::WorkswitchType::AuxiliaryHydraulic2:
+              value = steerCanData.frontHitchPosition;
+              threshold = steerConfig.canBusHitchThreshold;
+              hysteresis = steerConfig.canBusHitchThresholdHysteresis;
+              break;
+
+            case SteerConfig::WorkswitchType::AuxiliaryHydraulic3:
+              value = steerCanData.frontHitchPosition;
+              threshold = steerConfig.canBusHitchThreshold;
+              hysteresis = steerConfig.canBusHitchThresholdHysteresis;
+              break;
+
             default:
               break;
           }

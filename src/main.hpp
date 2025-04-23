@@ -176,7 +176,10 @@ struct SteerConfig {
     FrontHitchPosition      = 3,
     RearPtoRpm              = 4,
     FrontPtoRpm             = 5,
-    MotorRpm                = 6
+    MotorRpm                = 6,
+    AuxiliaryHydraulic1     = 7,
+    AuxiliaryHydraulic2     = 8,
+    AuxiliaryHydraulic3     = 9
   } workswitchType = WorkswitchType::None;
   uint8_t gpioWorkswitch = 2;
   uint8_t gpioWorkLED = 14;
@@ -327,6 +330,9 @@ struct SteerCanData {
   uint8_t rearHitchPosition;
   uint16_t frontPtoRpm;
   uint16_t rearPtoRpm;
+  uint16_t auxiliaryHydraulic1;
+  uint16_t auxiliaryHydraulic2;
+  uint16_t auxiliaryHydraulic3;
 };
 extern SteerCanData steerCanData;
 
