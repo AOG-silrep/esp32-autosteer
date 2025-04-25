@@ -204,6 +204,8 @@ json parseSteerConfigToJson( const SteerConfig& config ) {
   j["canBus"]["speed"] = int( config.canBusSpeed );
   j["canBus"]["hitchThreshold"] = config.canBusHitchThreshold;
   j["canBus"]["hitchThresholdHysteresis"] = config.canBusHitchThresholdHysteresis;
+  j["canBus"]["valveThreshold"] = config.canBusValveThreshold;
+  j["canBus"]["valveThresholdHysteresis"] = config.canBusValveThresholdHysteresis;
   j["canBus"]["rpmThreshold"] = config.canBusRpmThreshold;
   j["canBus"]["rpmThresholdHysteresis"] = config.canBusRpmThresholdHysteresis;
   j["canBus"]["fendtEngageVersion"] = config.canBusFendtEngageVersion;
@@ -287,6 +289,8 @@ void parseJsonToSteerConfig( json& j, SteerConfig& config ) {
       config.canBusSpeed = j.value( "/canBus/speed"_json_pointer, steerConfigDefaults.canBusSpeed );
       config.canBusHitchThreshold = j.value( "/canBus/hitchThreshold"_json_pointer, steerConfigDefaults.canBusHitchThreshold );
       config.canBusHitchThresholdHysteresis = j.value( "/canBus/hitchThresholdHysteresis"_json_pointer, steerConfigDefaults.canBusHitchThresholdHysteresis );
+      config.canBusValveThreshold = j.value( "/canBus/valveThreshold"_json_pointer, steerConfigDefaults.canBusValveThreshold );
+      config.canBusValveThresholdHysteresis = j.value( "/canBus/valveThresholdHysteresis"_json_pointer, steerConfigDefaults.canBusValveThresholdHysteresis );
       config.canBusRpmThreshold = j.value( "/canBus/rpmThreshold"_json_pointer, steerConfigDefaults.canBusRpmThreshold );
       config.canBusRpmThresholdHysteresis = j.value( "/canBus/rpmThresholdHysteresis"_json_pointer, steerConfigDefaults.canBusRpmThresholdHysteresis );
       config.canBusFendtEngageVersion = j.value( "/canBus/fendtEngageVersion"_json_pointer, steerConfigDefaults.canBusFendtEngageVersion );

@@ -230,12 +230,13 @@ void initESPUI ( void ) {
         ESPUI.addControl( ControlType::Option, "Rear Pto Rpm (from Can Bus)", "4", ControlColor::Alizarin, sel );
         ESPUI.addControl( ControlType::Option, "Front Pto Rpm (from Can Bus)", "5", ControlColor::Alizarin, sel );
         ESPUI.addControl( ControlType::Option, "Motor Rpm (from Can Bus)", "6", ControlColor::Alizarin, sel );
-        ESPUI.addControl( ControlType::Option, "Auxiliary Hydraulic 1 (from Can Bus)", "7", ControlColor::Alizarin, sel );
-        ESPUI.addControl( ControlType::Option, "Auxiliary Hydraulic 2 (from Can Bus)", "8", ControlColor::Alizarin, sel );
-        ESPUI.addControl( ControlType::Option, "Auxiliary Hydraulic 3 (from Can Bus)", "9", ControlColor::Alizarin, sel );
+        ESPUI.addControl( ControlType::Option, "SCV 1 (from Can Bus)", "7", ControlColor::Alizarin, sel );
+        ESPUI.addControl( ControlType::Option, "SCV 2 (from Can Bus)", "8", ControlColor::Alizarin, sel );
+        ESPUI.addControl( ControlType::Option, "SCV 3 (from Can Bus)", "9", ControlColor::Alizarin, sel );
       }
+
       {
-        uint16_t num = ESPUI.addControl( ControlType::Number, "Hitch/Valve Threshold", String( steerConfig.canBusHitchThreshold ), ControlColor::Peterriver, tab,
+        uint16_t num = ESPUI.addControl( ControlType::Number, "Hitch Threshold", String( steerConfig.canBusHitchThreshold ), ControlColor::Peterriver, tab,
         []( Control * control, int id ) {
           steerConfig.canBusHitchThreshold = control->value.toInt();
         } );
@@ -244,12 +245,32 @@ void initESPUI ( void ) {
         ESPUI.addControl( ControlType::Step, "Step", "1", ControlColor::Peterriver, num );
       }
       {
-        uint16_t num = ESPUI.addControl( ControlType::Number, "Hitch/Valve Threshold Hysteresis", String( steerConfig.canBusHitchThresholdHysteresis ), ControlColor::Peterriver, tab,
+        uint16_t num = ESPUI.addControl( ControlType::Number, "Hitch Threshold Hysteresis", String( steerConfig.canBusHitchThresholdHysteresis ), ControlColor::Peterriver, tab,
         []( Control * control, int id ) {
           steerConfig.canBusHitchThresholdHysteresis = control->value.toInt();
         } );
         ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
         ESPUI.addControl( ControlType::Max, "Max", "100", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Step, "Step", "1", ControlColor::Peterriver, num );
+      }
+
+      {
+        uint16_t num = ESPUI.addControl( ControlType::Number, "SCV Threshold", String( steerConfig.canBusValveThreshold ), ControlColor::Peterriver, tab,
+        []( Control * control, int id ) {
+          steerConfig.canBusValveThreshold = control->value.toInt();
+        } );
+        ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Max, "Max", "255", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Step, "Step", "1", ControlColor::Peterriver, num );
+      }
+      
+      {
+        uint16_t num = ESPUI.addControl( ControlType::Number, "SCV Hysteresis", String( steerConfig.canBusValveThresholdHysteresis ), ControlColor::Peterriver, tab,
+        []( Control * control, int id ) {
+          steerConfig.canBusValveThresholdHysteresis = control->value.toInt();
+        } );
+        ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Max, "Max", "255", ControlColor::Peterriver, num );
         ESPUI.addControl( ControlType::Step, "Step", "1", ControlColor::Peterriver, num );
       }
 
