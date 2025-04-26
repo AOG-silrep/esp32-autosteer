@@ -54,14 +54,14 @@ AutoPID pid(
 
 constexpr time_t Timeout = 1000;
 time_t lastSwitchChangeMillis;
-volatile bool disengageState;
 volatile bool disengagePrevState;
 volatile bool disengagePrevJdState;
 volatile time_t disengageActivityMillis = millis();
-volatile time_t onTime;
-volatile time_t offTime;
 volatile uint16_t dutyCycle;
 uint16_t dutyAverage;
+volatile time_t DRAM_ATTR disengageActivityMicros;
+volatile time_t DRAM_ATTR onTime;
+volatile time_t DRAM_ATTR offTime;
 
 bool previousAogEnabledState = false;
 bool AogToMachineEngagedMismatch = false; // do not update machine engaged state from AOG after switch change until round trip is completed
@@ -447,10 +447,6 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
   bool previousState;
   bool switchState;
 
-  const uint8_t dutyLength = 10;
-  uint16_t dutyReadings[ dutyLength ];
-  uint32_t dutyTotal = 0;
-  uint8_t dutyIndex = 0;
   switchState = digitalRead( ( uint8_t )steerConfig.gpioSteerswitch ); // initialize switch state on startup
 
   for( ;; ) {
@@ -500,6 +496,7 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
       machine.steeringEnabled = false; // disable autosteer due to timeout
     }
 
+    bool disengageState = digitalRead( steerConfig.gpioDisengage );
     if( steerConfig.disengageSwitchType == SteerConfig::DisengageSwitchType::Hydraulic ){
       if( disengagePrevState != disengageState && millis() - disengageActivityMillis > 50 ){
         disengagePrevState = disengageState;
@@ -535,14 +532,7 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
     }
     else if( steerConfig.disengageSwitchType == SteerConfig::DisengageSwitchType::JDVariableDuty ){
       uint16_t dutyCycle = abs( onTime - offTime );
-      dutyTotal -= dutyReadings[ dutyIndex ];
-      dutyReadings[ dutyIndex ] = dutyCycle;
-      dutyTotal += dutyReadings[ dutyIndex ];
-      dutyIndex += 1;
-      if( dutyIndex >= dutyLength ) {
-        dutyIndex = 0;
-      }
-      dutyAverage = dutyTotal / dutyLength;
+      dutyAverage = ( dutyAverage * 0.9 ) + ( dutyCycle * 0.1 );
       if( abs( dutyAverage - dutyCycle ) > steerConfig.JDVariableDutyChange ){
         machine.steeringEnabled = false;
         machine.disengagedBySteeringWheel = true;
@@ -576,16 +566,15 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
 }
 
 static void IRAM_ATTR disengageIsr( void* arg ) {
-    // interrupt service routine for the steering wheel
-    static time_t disengageActivityMicros = micros();
-    disengageState = digitalRead(( gpio_num_t )( int )arg );
-    if( disengageState == LOW ){
-      onTime = micros() - disengageActivityMicros;
-    } else {
-      offTime = micros() - disengageActivityMicros;
-    }
-    disengageActivityMicros = micros();
-    disengageActivityMillis = millis();
+  // interrupt service routine for the steering wheel
+  static bool state = LOW;
+  if( state == LOW ){
+    onTime = esp_timer_get_time() - disengageActivityMicros;
+  } else {
+    offTime = esp_timer_get_time() - disengageActivityMicros;
+  }
+  state = !state;
+  disengageActivityMicros = esp_timer_get_time();
 }
 
 void initAutosteer() {
@@ -770,8 +759,8 @@ void initAutosteer() {
   gpio_pulldown_dis( DISENGAGE_GPIO );
   gpio_pullup_dis( DISENGAGE_GPIO );
   gpio_set_intr_type( DISENGAGE_GPIO, GPIO_INTR_ANYEDGE );
-  gpio_install_isr_service( ESP_INTR_FLAG_EDGE );
-  gpio_isr_handler_add(( gpio_num_t ) DISENGAGE_GPIO, disengageIsr, ( void* ) DISENGAGE_GPIO );
+  gpio_install_isr_service( ESP_INTR_FLAG_IRAM );
+  gpio_isr_handler_add(( gpio_num_t ) DISENGAGE_GPIO, disengageIsr, ( void* ) NULL );
 
   xTaskCreate( autosteerWorker100Hz, "autosteerWorker", 3096, NULL, 3, NULL );
   if( machine.canbusSteeringActive == false ){
