@@ -621,6 +621,9 @@ void initESPUI ( void ) {
       uint16_t sel = ESPUI.addControl( ControlType::Select, "Disengage Switch Type*", String( ( int )steerConfig.disengageSwitchType ), ControlColor::Wetasphalt, tab,
       []( Control * control, int id ) {
         steerConfig.disengageSwitchType = ( SteerConfig::DisengageSwitchType )control->value.toInt();
+        if( steerConfig.disengageSwitchType != SteerConfig::DisengageSwitchType::Hydraulic ){
+          steerConfig.disengageHeavyDuty = false;
+        }
         setResetButtonToRed();
       } );
       ESPUI.addControl( ControlType::Option, "Encoder on steering shaft", "0", ControlColor::Alizarin, sel );
