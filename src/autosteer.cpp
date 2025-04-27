@@ -53,12 +53,7 @@ AutoPID pid(
         steerConfig.steeringPidKp, steerConfig.steeringPidKi, steerConfig.steeringPidKd );
 
 constexpr time_t Timeout = 1000;
-time_t lastSwitchChangeMillis;
 volatile bool disengagePrevState;
-volatile bool disengagePrevJdState;
-volatile time_t disengageActivityMillis = millis();
-volatile uint16_t dutyCycle;
-uint16_t dutyAverage;
 volatile time_t DRAM_ATTR disengageActivityMicros;
 volatile time_t DRAM_ATTR onTime;
 volatile time_t DRAM_ATTR offTime;
@@ -446,6 +441,9 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
   TickType_t xLastWakeTime = xTaskGetTickCount();
   bool previousState;
   bool switchState;
+  int32_t dutyAverage;
+  time_t lastSwitchChangeMillis;
+  time_t disengageActivityMillis;
 
   switchState = digitalRead( ( uint8_t )steerConfig.gpioSteerswitch ); // initialize switch state on startup
 
@@ -498,7 +496,7 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
 
     bool disengageState = digitalRead( steerConfig.gpioDisengage );
     if( steerConfig.disengageSwitchType == SteerConfig::DisengageSwitchType::Hydraulic ){
-      if( disengagePrevState != disengageState && millis() - disengageActivityMillis > 50 ){
+      if( disengagePrevState != disengageState ){
         disengagePrevState = disengageState;
         machine.lastDisengageMillis = millis();
       }
