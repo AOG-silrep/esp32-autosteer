@@ -45,9 +45,15 @@ constexpr uint16_t j1939PgnFHS = 65094;
 constexpr uint16_t j1939PgnRPTO = 65091;
 constexpr uint16_t j1939PgnFPTO = 65092;
 
+constexpr uint16_t j1939PgnAH1 = 65072;
+constexpr uint16_t j1939PgnAH2 = 65073;
+constexpr uint16_t j1939PgnAH3 = 65074;
+
 constexpr uint16_t j1939PgnVMCWas = 44032;
 constexpr uint32_t VMCAutosteer = 0x18EF1C00;
 constexpr uint32_t FendtAutosteer = 0x0CEF2CF0;
+
+constexpr uint32_t DeereHydraulicRemotes = 0x18FFFB22;
 
 bool readyToDisengage;
 
@@ -223,6 +229,24 @@ void canReceiver10Hz( void* z ) {
           }
           break;
 
+          // Auxiliary Hydraulic 1
+          case j1939PgnAH1: {
+            steerCanData.hydraulicRemote1 = ( canFrame.data.u8[1] << 8 | canFrame.data.u8[0] ) / 8;
+          }
+          break;
+
+          // Auxiliary Hydraulic 2
+          case j1939PgnAH2: {
+            steerCanData.hydraulicRemote2 = ( canFrame.data.u8[1] << 8 | canFrame.data.u8[0] ) / 8;
+          }
+          break;
+
+          // Auxiliary Hydraulic 3
+          case j1939PgnAH3: {
+            steerCanData.hydraulicRemote3 = ( canFrame.data.u8[1] << 8 | canFrame.data.u8[0] ) / 8;
+          }
+          break;
+
           case j1939PgnVMCWas: { //0x0CAC1C13
             if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){      
               machine.canbusWasCounts = (( canFrame.data.u8[1] << 8 ) + canFrame.data.u8[0] );  // CAN Buf[1]*256 + CAN Buf[0] = CAN Est Curve
@@ -268,6 +292,14 @@ void canReceiver10Hz( void* z ) {
                 } else if(( canFrame.data.u8[0] ) == 15 && ( canFrame.data.u8[1] ) == 96 && ( canFrame.data.u8[2] ) == 0 ){
                   machine.steeringEnabled = false;
               }
+
+              case DeereHydraulicRemotes:{ //0x18FFFB22
+                if(( canFrame.data.u8[0] ) == 0xF2 && ( canFrame.data.u8[1] ) == 0x17 ){
+                  steerCanData.hydraulicRemote1 = ( canFrame.data.u8[2] );
+                  steerCanData.hydraulicRemote2 = ( canFrame.data.u8[3] );
+                  steerCanData.hydraulicRemote3 = ( canFrame.data.u8[4] );
+                }
+              }
               
               default:
               break;
@@ -299,6 +331,12 @@ void canReceiver10Hz( void* z ) {
       str += String( steerCanData.frontPtoRpm );
       str += "</td></tr><tr><td style='text-align:left; padding: 0px 5px;'>Rear PTO RPM:</td><td style='text-align:left; padding: 0px 5px;'>";
       str += String( steerCanData.rearPtoRpm );
+      str += "</td></tr><tr><td style='text-align:left; padding: 0px 5px;'>Remote 1 Lever Position:</td><td style='text-align:left; padding: 0px 5px;'>";
+      str += String( steerCanData.hydraulicRemote1 );
+      str += "</td></tr><tr><td style='text-align:left; padding: 0px 5px;'>Remote 2 Lever Position:</td><td style='text-align:left; padding: 0px 5px;'>";
+      str += String( steerCanData.hydraulicRemote2 );
+      str += "</td></tr><tr><td style='text-align:left; padding: 0px 5px;'>Remote 3 Lever Position:</td><td style='text-align:left; padding: 0px 5px;'>";
+      str += String( steerCanData.hydraulicRemote3 );
       str += "</td></tr></table>";
       str += "Received ";
       time_t elapse = millis() - lastCanbusMsgMillis;

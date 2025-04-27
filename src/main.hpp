@@ -176,7 +176,10 @@ struct SteerConfig {
     FrontHitchPosition      = 3,
     RearPtoRpm              = 4,
     FrontPtoRpm             = 5,
-    MotorRpm                = 6
+    MotorRpm                = 6,
+    HydraulicRemote1        = 7,
+    HydraulicRemote2        = 8,
+    HydraulicRemote3        = 9
   } workswitchType = WorkswitchType::None;
   uint8_t gpioWorkswitch = 2;
   uint8_t gpioWorkLED = 14;
@@ -241,6 +244,9 @@ struct SteerConfig {
 
   uint8_t canBusHitchThreshold = 50;
   uint8_t canBusHitchThresholdHysteresis = 6;
+
+  uint8_t canBusValveThreshold = 128;
+  uint8_t canBusValveThresholdHysteresis = 25;
 
   uint16_t canBusRpmThreshold = 400;
   uint16_t canBusRpmThresholdHysteresis = 100;
@@ -327,6 +333,9 @@ struct SteerCanData {
   uint8_t rearHitchPosition;
   uint16_t frontPtoRpm;
   uint16_t rearPtoRpm;
+  uint16_t hydraulicRemote1;
+  uint16_t hydraulicRemote2;
+  uint16_t hydraulicRemote3;
 };
 extern SteerCanData steerCanData;
 

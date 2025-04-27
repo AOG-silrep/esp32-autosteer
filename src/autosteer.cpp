@@ -388,20 +388,40 @@ void autosteerWorker100Hz( void* z ) {
               hysteresis = steerConfig.canBusRpmThresholdHysteresis;
               break;
 
+            case SteerConfig::WorkswitchType::HydraulicRemote1:
+              value = steerCanData.hydraulicRemote1;
+              threshold = steerConfig.canBusValveThreshold;
+              hysteresis = steerConfig.canBusValveThresholdHysteresis;
+              break;
+
+            case SteerConfig::WorkswitchType::HydraulicRemote2:
+              value = steerCanData.hydraulicRemote2;
+              threshold = steerConfig.canBusValveThreshold;
+              hysteresis = steerConfig.canBusValveThresholdHysteresis;
+              break;
+
+            case SteerConfig::WorkswitchType::HydraulicRemote3:
+              value = steerCanData.hydraulicRemote3;
+              threshold = steerConfig.canBusValveThreshold;
+              hysteresis = steerConfig.canBusValveThresholdHysteresis;
+              break;
+
             default:
               break;
           }
 
           if( value >= threshold ) {
             machine.workswitchState = true;
+            if( steerConfig.workswitchActiveLow ) {
+              machine.workswitchState = ! machine.workswitchState;
+            }
           }
 
           if( value < ( threshold - hysteresis ) ) {
             machine.workswitchState = false;
-          }
-
-          if( steerConfig.workswitchActiveLow ) {
-            machine.workswitchState = ! machine.workswitchState;
+            if( steerConfig.workswitchActiveLow ) {
+              machine.workswitchState = ! machine.workswitchState;
+            }
           }
 
           data[11] |= machine.workswitchState ? 1 : 0;
