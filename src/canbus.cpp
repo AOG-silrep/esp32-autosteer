@@ -93,6 +93,16 @@ void showCanbusStateOnAOG( uint8_t state ){
       udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
     }
     break;
+    case 0x61: {
+      uint8_t data[27] = {0x80, 0x81, 0x7F, 0xDD, 21, 3, 1, 0x54, 0x72, 0x61, 0x63, 0x74, 0x6F, 0x72, 0x20, 0x6E, 0x6F, 0x74, 0x20, 0x64, 0x72, 0x69, 0x76, 0x69, 0x6E, 0x67}; //Tractor not driving
+      int CRCtoAOG = 0;
+      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
+        CRCtoAOG = ( CRCtoAOG + data[ i ] );
+      }
+      data[ sizeof( data ) - 1 ] = CRCtoAOG;
+      udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+    }
+    break;
     default: {
       uint8_t data[20] = {0x80, 0x81, 0x7F, 0xDD, 16, 3, 1, 0x55, 0x6E, 0x6B, 0x6E, 0x6F, 0x77, 0x6E, 0x20, 0x65, 0x72, 0x72, 0x6F, 0x72}; //Unknown error
       int CRCtoAOG = 0;
@@ -229,6 +239,9 @@ void canReceiver10Hz( void* z ) {
               machine.disengageInput = true;
               machine.lastDisengageMillis = millis();
             } else if ( machine.canbusSteeringState == 0x20 ) { // stagnant
+              if( readyToDisengage == true ){
+                showCanbusStateOnAOG( 0x61 );
+              }
               machine.steeringEnabled = false;
               readyToDisengage = false;
               machine.disengageInput = false;
