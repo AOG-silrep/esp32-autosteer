@@ -464,6 +464,7 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
   int32_t dutyAverage;
   time_t lastSwitchChangeMillis;
   time_t disengageActivityMillis;
+  time_t deereDutyMicrosTimeout;
 
   switchState = digitalRead( ( uint8_t )steerConfig.gpioSteerswitch ); // initialize switch state on startup
 
@@ -552,12 +553,16 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
       uint16_t dutyCycle = abs( onTime - offTime );
       dutyAverage = ( dutyAverage * 0.9 ) + ( dutyCycle * 0.1 );
       if( abs( dutyAverage - dutyCycle ) > steerConfig.JDVariableDutyChange ){
-        machine.steeringEnabled = false;
-        machine.disengagedBySteeringWheel = true;
-        machine.lastDisengageMillis = millis();
-        machine.disengageInput = true;
-        AogToMachineEngagedMismatch = true;
+        if((( esp_timer_get_time() - deereDutyMicrosTimeout ) / 1000 ) > steerConfig.JDVariableDutyFrameLength ){
+          machine.steeringEnabled = false;
+          machine.disengagedBySteeringWheel = true;
+          machine.lastDisengageMillis = millis();
+          machine.disengageInput = true;
+          machine.DeereDutyDisengage = abs( dutyAverage - dutyCycle );
+          AogToMachineEngagedMismatch = true;
+        }
       } else {
+        deereDutyMicrosTimeout = esp_timer_get_time();
         machine.disengageInput = false;
       }
       machine.DeereDutyCycle = dutyCycle;

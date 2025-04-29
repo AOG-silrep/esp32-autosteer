@@ -183,6 +183,7 @@ json parseSteerConfigToJson( const SteerConfig& config ) {
   j["workswitch"]["disengageFrameMillis"] = config.disengageFrameMillis;
   j["workswitch"]["disengageHeavyDuty"] = config.disengageHeavyDuty;
   j["workswitch"]["JDVariableDutyChange"] = config.JDVariableDutyChange;
+  j["workswitch"]["JDVariableDutyFrameLength"] = config.JDVariableDutyFrameLength;
 
   j["wheelangle"]["input"] = config.wheelAngleInput;
   j["wheelangle"]["sensorType"] = int( config.wheelAngleSensorType );
@@ -268,6 +269,7 @@ void parseJsonToSteerConfig( json& j, SteerConfig& config ) {
       config.disengageFrameMillis = j.value( "/workswitch/disengageFrameMillis"_json_pointer, steerConfigDefaults.disengageFrameMillis );
       config.disengageHeavyDuty = j.value( "/workswitch/disengageHeavyDuty"_json_pointer, steerConfigDefaults.disengageHeavyDuty );
       config.JDVariableDutyChange = j.value( "/workswitch/JDVariableDutyChange"_json_pointer, steerConfigDefaults.JDVariableDutyChange );
+      config.JDVariableDutyFrameLength = j.value( "/workswitch/JDVariableDutyFrameLength"_json_pointer, steerConfigDefaults.JDVariableDutyFrameLength );
 
       config.wheelAngleInput = j.value( "/wheelangle/input"_json_pointer, steerConfigDefaults.wheelAngleInput );
       config.wheelAngleSensorType = j.value( "/wheelangle/sensorType"_json_pointer, steerConfigDefaults.wheelAngleSensorType );
