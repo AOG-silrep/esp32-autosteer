@@ -124,7 +124,8 @@ struct SteerConfig {
     Encoder = 0,
     Hydraulic = 1,
     JDVariableDuty = 2,
-    MotorCurrent = 3
+    MotorCurrent = 3,
+    ExternalLogicInput = 4
   } disengageSwitchType = DisengageSwitchType::Encoder;
 
   char ssid[24] = "AOG hub";

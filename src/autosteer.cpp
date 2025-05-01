@@ -583,6 +583,17 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
         disengageActivityMillis = millis();
       }
     }
+    else if( steerConfig.disengageSwitchType == SteerConfig::DisengageSwitchType::ExternalLogicInput ){
+      if( digitalRead( GPIO_NUM_12 ) == HIGH ){
+        machine.steeringEnabled = false;
+        machine.disengagedBySteeringWheel = true;
+        AogToMachineEngagedMismatch = true;
+        machine.lastDisengageMillis = millis();
+        machine.disengageInput = true;
+      } else {
+        machine.disengageInput = false;
+      }
+    }
     if( steerSetpoints.enabled == true && machine.disengageInput == true ) {
       machine.autosteerSafetyLock = true;
     }
