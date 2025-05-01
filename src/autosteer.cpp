@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "soc/gpio_reg.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -54,9 +55,9 @@ AutoPID pid(
 
 constexpr time_t Timeout = 1000;
 volatile bool disengagePrevState;
-volatile time_t DRAM_ATTR disengageActivityMicros;
-volatile time_t DRAM_ATTR onTime;
-volatile time_t DRAM_ATTR offTime;
+uint32_t DRAM_ATTR disengageActivityMicros;
+uint32_t DRAM_ATTR onTime;
+uint32_t DRAM_ATTR offTime;
 
 bool previousAogEnabledState = false;
 bool AogToMachineEngagedMismatch = false; // do not update machine engaged state from AOG after switch change until round trip is completed
@@ -550,7 +551,8 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
       } else machine.handwheelPulseCount = 0;
     }
     else if( steerConfig.disengageSwitchType == SteerConfig::DisengageSwitchType::JDVariableDuty ){
-      uint16_t dutyCycle = abs( onTime - offTime );
+      int32_t elapse = onTime - offTime;
+      uint16_t dutyCycle = abs( elapse );
       dutyAverage = ( dutyAverage * 0.9 ) + ( dutyCycle * 0.1 );
       if( abs( dutyAverage - dutyCycle ) > steerConfig.JDVariableDutyChange ){
         if((( esp_timer_get_time() - deereDutyMicrosTimeout ) / 1000 ) > steerConfig.JDVariableDutyFrameLength ){
@@ -590,7 +592,7 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
 
 static void IRAM_ATTR disengageIsr( void* arg ) {
   // interrupt service routine for the steering wheel
-  static bool state = LOW;
+  static bool state = LOW; // bool state = ( GPIO.in >> 23 ) & 0x1;
   if( state == LOW ){
     onTime = esp_timer_get_time() - disengageActivityMicros;
   } else {
@@ -776,14 +778,16 @@ void initAutosteer() {
   pinMode( steerConfig.gpioWorkLED, OUTPUT );
   pinMode( steerConfig.gpioSteerswitch, INPUT_PULLUP );
 
-  #define DISENGAGE_GPIO ( gpio_num_t ) steerConfig.gpioDisengage
-  gpio_pad_select_gpio( DISENGAGE_GPIO );
-  gpio_set_direction( DISENGAGE_GPIO, GPIO_MODE_INPUT );
-  gpio_pulldown_dis( DISENGAGE_GPIO );
-  gpio_pullup_dis( DISENGAGE_GPIO );
-  gpio_set_intr_type( DISENGAGE_GPIO, GPIO_INTR_ANYEDGE );
-  gpio_install_isr_service( ESP_INTR_FLAG_IRAM );
-  gpio_isr_handler_add(( gpio_num_t ) DISENGAGE_GPIO, disengageIsr, ( void* ) NULL );
+  if( steerConfig.disengageSwitchType == SteerConfig::DisengageSwitchType::JDVariableDuty ){
+    #define DISENGAGE_GPIO ( gpio_num_t ) steerConfig.gpioDisengage
+    gpio_pad_select_gpio( DISENGAGE_GPIO );
+    gpio_set_direction( DISENGAGE_GPIO, GPIO_MODE_INPUT );
+    gpio_pulldown_dis( DISENGAGE_GPIO );
+    gpio_pullup_dis( DISENGAGE_GPIO );
+    gpio_set_intr_type( DISENGAGE_GPIO, GPIO_INTR_ANYEDGE );
+    gpio_install_isr_service( ESP_INTR_FLAG_IRAM | ESP_INTR_FLAG_LEVEL3 );
+    gpio_isr_handler_add(( gpio_num_t ) DISENGAGE_GPIO, disengageIsr, ( void* ) NULL );
+  }
 
   xTaskCreate( autosteerWorker100Hz, "autosteerWorker", 3096, NULL, 3, NULL );
   if( machine.canbusSteeringActive == false ){
