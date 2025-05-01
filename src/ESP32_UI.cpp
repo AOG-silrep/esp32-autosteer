@@ -651,6 +651,7 @@ void initESPUI ( void ) {
       ESPUI.addControl( ControlType::Option, "Pressure switch in hydraulics", "1", ControlColor::Alizarin, sel );
       ESPUI.addControl( ControlType::Option, "Deere variable duty sensor", "2", ControlColor::Alizarin, sel );
       ESPUI.addControl( ControlType::Option, "Motor current", "3", ControlColor::Alizarin, sel );
+      ESPUI.addControl( ControlType::Option, "Logic input on GPIO12", "4", ControlColor::Alizarin, sel );
     }
     {
       uint16_t sel = ESPUI.addControl( ControlType::Switcher, "Heavy Duty Disengage Switch", steerConfig.disengageHeavyDuty ? "1" : "0" , ControlColor::Peterriver, tab,
