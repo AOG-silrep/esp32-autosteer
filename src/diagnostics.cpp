@@ -29,7 +29,15 @@ void diagnosticWorker1Hz( void* z ) {
       str += "\nDisabled by min speed: ";
       str += ( bool )steerSetpoints.speed < steerConfig.minAutosteerSpeed ? "Yes" : "No" ;
       str += "\nDisabled by steering wheel: ";
-      str += ( bool )machine.disengagedBySteeringWheel ? "Yes" : "No" ;
+      if( machine.disengagedBySteeringWheel ){
+        str += "Yes ";
+        str += machine.DeereDutyDisengage;
+        str += " micros ";
+        time_t elapsed = ( millis() - machine.lastDisengageMillis );
+        str += elapsed / 1000;
+        str += " seconds ago";
+
+      } else str += "No";
       if( safety.AOGEnableAutosteerTimeout || 
           safety.autosteerDisabledByMaxEngageSpeed || 
           machine.disengagedBySteeringWheel ){
@@ -220,17 +228,20 @@ void diagnosticWorker1Hz( void* z ) {
         case SteerConfig::DisengageSwitchType::JDVariableDuty: {
           str += "\nDeere variable duty encoder: ";
           str += ( uint16_t )( abs( machine.DeereDutyAverage - machine.DeereDutyCycle ) );
+          str += " micros";
         }
         break;
       }
-      str += " ";
-      time_t elapsed = millis() - machine.lastDisengageMillis;
-      if( elapsed < 1000 ){
-        str += ( time_t )elapsed;
-        str += " millis ago";
-      } else {
-        str += ( time_t )elapsed / 1000;
-        str += " seconds ago";
+      if( steerConfig.disengageSwitchType != SteerConfig::DisengageSwitchType::JDVariableDuty ){
+        str += " ";
+        time_t elapsed = millis() - machine.lastDisengageMillis;
+        if( elapsed < 1000 ){
+          str += ( time_t )elapsed;
+          str += " millis ago";
+        } else {
+          str += ( time_t )elapsed / 1000;
+          str += " seconds ago";
+        }
       }
       ESPUI.updateLabel( labelSwitchStates, str );
     }
@@ -299,8 +310,9 @@ void diagnosticWorker1Hz( void* z ) {
           str += ( bool )( steerSetpoints.lastPacketReceived < safety.timeoutPoint ) ? "Yes" : "No" ;
           str += ", enabled: ";
           str += ( bool )steerSetpoints.enabled ? "Yes" : "No" ;
-          str += ", output: ";
-          str += ( uint16_t )machine.valveOutput ;
+          str += ", UDP ";
+          str += millis() - steerSetpoints.lastPacketReceived ;
+          str += " millis ago";
           labelStatusOutputHandle->color = ControlColor::Emerald;
           ESPUI.updateLabel( labelStatusOutput, str );
         }

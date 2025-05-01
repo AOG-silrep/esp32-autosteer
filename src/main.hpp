@@ -91,6 +91,7 @@ struct Machine {
   uint16_t handwheelPulseCount; // handwheel encoder counts
   uint16_t DeereDutyCycle; // duty cycle of Deere variable duty PWM disengage sensor
   uint16_t DeereDutyAverage; // average duty cycle of Deere variable duty PWM disengage sensor
+  uint16_t DeereDutyDisengage;
   uint16_t steerMotorCurrent; // steering motor current
   double steerSupplyVoltage; // voltage from machine, also feeds the steering valve
   float wheelAngle; // wheel angle in degrees
@@ -193,7 +194,8 @@ struct SteerConfig {
   uint16_t disengageFramePulses = 3;
   uint16_t disengageFrameMillis = 1000;
   bool disengageHeavyDuty = false;
-  uint16_t JDVariableDutyChange = 5;
+  uint16_t JDVariableDutyChange = 50;
+  uint16_t JDVariableDutyFrameLength = 200;
   double steeringShuntVoltsPerAmp = 1.0;
   uint16_t maxSteerCurrent = 512;
   bool workswitchActiveLow = true;

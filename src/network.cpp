@@ -81,8 +81,8 @@ void initWiFi( void ){
   Serial.print( steerConfig.password );
   Serial.println( "\"" );
 
-  uint8_t timeout = 5;
-  // Wait for connection, 2.5s timeout
+  uint8_t timeout = 10;
+  // Wait for connection, 5.0s timeout
   do {
     delay( 500 );
     Serial.print( "." );
