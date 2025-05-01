@@ -54,7 +54,6 @@ AutoPID pid(
         steerConfig.steeringPidKp, steerConfig.steeringPidKi, steerConfig.steeringPidKd );
 
 constexpr time_t Timeout = 1000;
-volatile bool disengagePrevState;
 uint32_t DRAM_ATTR disengageActivityMicros;
 uint32_t DRAM_ATTR onTime;
 uint32_t DRAM_ATTR offTime;
@@ -462,6 +461,7 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
   TickType_t xLastWakeTime = xTaskGetTickCount();
   bool previousState;
   bool switchState;
+  bool disengagePrevState;
   int32_t dutyAverage;
   time_t lastSwitchChangeMillis;
   time_t disengageActivityMillis;
