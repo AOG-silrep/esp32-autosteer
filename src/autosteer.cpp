@@ -697,6 +697,24 @@ void initAutosteer() {
         }
         break;
 
+        case 0x7FC8: { // Hello message
+          uint8_t helloFromAutoSteer[] = { 128, 129, 126, 126, 5, 0, 0, 0, 0, 0, 71 };
+          int16_t steerAngle = ( steerSetpoints.actualSteerAngle * 100 );
+          helloFromAutoSteer[5] = ( uint8_t )steerAngle;
+          helloFromAutoSteer[6] = ( uint8_t )steerAngle >> 8;
+
+          int16_t helloSteerPosition = (( uint16_t ) steerSetpoints.wheelAngleCounts >> 1 );
+          helloSteerPosition = helloSteerPosition - 6800;
+          helloFromAutoSteer[7] = (uint8_t)helloSteerPosition;
+          helloFromAutoSteer[8] = helloSteerPosition >> 8;
+
+          uint8_t switchByte = 0;
+          switchByte |= machine.steeringEnabled ? 0 : 2;   //put steerswitch status in bit 1 position
+          switchByte |= machine.workswitchState ? 0 : 1;
+          helloFromAutoSteer[9] = switchByte;
+          udpSendFrom.broadcastTo( helloFromAutoSteer, sizeof( helloFromAutoSteer ), initialisation.portSendTo );
+        }
+
         default:
           break;
       }
