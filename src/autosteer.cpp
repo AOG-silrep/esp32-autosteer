@@ -43,6 +43,7 @@ SteerMachineControl steerMachineControl;
 
 AsyncUDP udpSendFrom;
 AsyncUDP udpLocalPort;
+IPAddress ipDestination; //IP address to send UDP data to
 
 double pidOutput = 0;
 double pidOutputTmp = 0;
@@ -449,7 +450,7 @@ void autosteerWorker100Hz( void* z ) {
       }
       data[sizeof(data) - 1] = CRCtoAOG;
 
-      udpSendFrom.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+      udpSendFrom.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
 
     }
     vTaskDelayUntil( &xLastWakeTime, xFrequency );
@@ -713,6 +714,7 @@ void initAutosteer() {
           switchByte |= machine.workswitchState ? 0 : 1;
           helloFromAutoSteer[9] = switchByte;
           udpSendFrom.broadcastTo( helloFromAutoSteer, sizeof( helloFromAutoSteer ), initialisation.portSendTo );
+          ipDestination = packet.remoteIP();
         }
 
         default:

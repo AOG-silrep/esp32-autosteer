@@ -66,7 +66,7 @@ void showCanbusStateOnAOG( uint8_t state ){
         CRCtoAOG = ( CRCtoAOG + data[ i ] );
       }
       data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
     }
     break;
     case 0x20: {
@@ -76,7 +76,7 @@ void showCanbusStateOnAOG( uint8_t state ){
         CRCtoAOG = ( CRCtoAOG + data[ i ] );
       }
       data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
     }
     break;
     case 0x50: {
@@ -86,7 +86,7 @@ void showCanbusStateOnAOG( uint8_t state ){
         CRCtoAOG = ( CRCtoAOG + data[ i ] );
       }
       data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
     }
     break;
     case 0x60: {
@@ -96,7 +96,7 @@ void showCanbusStateOnAOG( uint8_t state ){
         CRCtoAOG = ( CRCtoAOG + data[ i ] );
       }
       data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
     }
     break;
     case 0x61: {
@@ -106,7 +106,7 @@ void showCanbusStateOnAOG( uint8_t state ){
         CRCtoAOG = ( CRCtoAOG + data[ i ] );
       }
       data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
     }
     break;
     default: {
@@ -116,7 +116,7 @@ void showCanbusStateOnAOG( uint8_t state ){
         CRCtoAOG = ( CRCtoAOG + data[ i ] );
       }
       data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
     }
     break;
   }
@@ -512,7 +512,7 @@ void canbusStateMessage( void* z ){
         CRCtoAOG = ( CRCtoAOG + data[ i ] );
       }
       data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
       vTaskDelay( pdMS_TO_TICKS( 5000 )); // keep on showing this message
     } else {
       uint8_t data[33] = {0x80, 0x81, 0x7F, 0xDD, 27, 3, 1, 0x43, 0x61, 0x6E, 0x62, 0x75, 0x73, 0x20, 0x63, 0x6F, 0x6E, 0x74, 0x72, 0x6F, 0x6C, 0x6C, 0x65, 0x72, 0x20, 0x73, 0x74, 0x61, 0x72, 0x74, 0x65, 0x64}; //Canbus controller started
@@ -521,7 +521,7 @@ void canbusStateMessage( void* z ){
         CRCtoAOG = ( CRCtoAOG + data[ i ] );
       }
       data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.broadcastTo( data, sizeof( data ), initialisation.portSendTo );
+      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
       vTaskDelete( NULL ); // delete this task, canbus started
     }
   }

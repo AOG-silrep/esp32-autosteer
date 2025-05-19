@@ -56,6 +56,7 @@ extern uint16_t manualValvePWMWidget;
 extern SemaphoreHandle_t i2cMutex;
 extern TaskHandle_t canReceiverHandle;
 extern TaskHandle_t canSenderHandle;
+extern IPAddress ipDestination; //IP address to send UDP data to
 
 struct Diagnostics {
   double steerSupplyVoltageMin;
