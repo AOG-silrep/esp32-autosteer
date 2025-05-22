@@ -18,6 +18,7 @@ uint16_t buttonReset;
 
 uint16_t labelWheelAngleDisplacement;
 
+uint16_t labelAgOpenGpsAddress;
 uint16_t labelStatusOutput;
 uint16_t labelStatusAdc;
 uint16_t labelStatusCanESP32;
@@ -76,6 +77,7 @@ void initESPUI ( void ) {
   {
     uint16_t tab = ESPUI.addControl( ControlType::Tab, "Diagnostics", "Diagnostics" );
 
+    labelAgOpenGpsAddress = ESPUI.addControl( ControlType::Label, "AgOpenGPS Address", "N/A", ControlColor::Turquoise, tab );
     labelSafetyDisableAutosteer = ESPUI.addControl( ControlType::Label, "Safety disable autosteer:", "Not started", ControlColor::Emerald, tab );
     labelSupplyVoltage = ESPUI.addControl( ControlType::Label, "Steer valve supply voltage:", "Not loaded", ControlColor::Emerald, tab );
     labelSteerMotorCurrent = ESPUI.addControl( ControlType::Label, "Steer motor current:", "Not loaded", ControlColor::Emerald, tab );

@@ -44,6 +44,7 @@ SteerMachineControl steerMachineControl;
 AsyncUDP udpSendFrom;
 AsyncUDP udpLocalPort;
 IPAddress ipDestination; //IP address to send UDP data to
+time_t lastHelloReceivedMillis;
 
 double pidOutput = 0;
 double pidOutputTmp = 0;
@@ -719,7 +720,13 @@ void initAutosteer() {
         break;
 
         case 0x7FC8: { // Hello message
-          ipDestination = packet.remoteIP();
+          IPAddress address = packet.remoteIP();
+          if( ipDestination == address ){ // only send autosteer to current AgOpenGPS
+            lastHelloReceivedMillis = millis();
+          } else if ( millis() - lastHelloReceivedMillis > 4000 ){ // AgOpenGPS Hello timed out
+            ipDestination = address; // switch to new AgOpenGPS address
+            lastHelloReceivedMillis = millis();
+          }
         }
 
         default:

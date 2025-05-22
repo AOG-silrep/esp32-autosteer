@@ -11,6 +11,8 @@ bool WiFiWasConnected = false;
 
 void WiFiStationGotIP( WiFiEvent_t event, WiFiEventInfo_t info ){
     IPAddress myIP = WiFi.localIP();
+    ipDestination = myIP;
+    ipDestination[3] = 255;
     if( myIP[3] != 77 ){
         IPAddress pingIP = myIP;
         pingIP[3] = 77;

@@ -46,6 +46,7 @@ extern uint16_t labelSteerMotorCurrent;
 extern uint16_t labelSteerEngagedFaults;
 extern uint16_t labelSwitchStates;
 
+extern uint16_t labelAgOpenGpsAddress;
 extern uint16_t labelStatusOutput;
 extern uint16_t labelStatusAdc;
 extern uint16_t labelStatusCanESP32;
@@ -57,6 +58,7 @@ extern SemaphoreHandle_t i2cMutex;
 extern TaskHandle_t canReceiverHandle;
 extern TaskHandle_t canSenderHandle;
 extern IPAddress ipDestination; //IP address to send UDP data to
+extern time_t lastHelloReceivedMillis;
 
 struct Diagnostics {
   double steerSupplyVoltageMin;
