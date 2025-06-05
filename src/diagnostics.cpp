@@ -258,7 +258,7 @@ void diagnosticWorker1Hz( void* z ) {
           str += ", enabled: ";
           str += ( bool )steerSetpoints.enabled ? "Yes" : "No" ;
           str += ", output: ";
-          str += ( uint16_t )machine.valveOutput ;
+          str += ( int16_t )machine.valveOutput ;
           labelStatusOutputHandle->color = ControlColor::Emerald;
           ESPUI.updateLabel( labelStatusOutput, str );
         }
@@ -275,7 +275,7 @@ void diagnosticWorker1Hz( void* z ) {
           str += ", enabled: ";
           str += ( bool )steerSetpoints.enabled ? "Yes" : "No" ;
           str += ", output: ";
-          str += ( uint16_t )machine.valveOutput;
+          str += ( int16_t )machine.valveOutput;
           labelStatusOutputHandle->color = ControlColor::Emerald;
           ESPUI.updateLabel( labelStatusOutput, str );
         }
@@ -292,7 +292,7 @@ void diagnosticWorker1Hz( void* z ) {
           str += ", enabled: ";
           str += ( bool )steerSetpoints.enabled ? "Yes" : "No" ;
           str += ",\n output: ";
-          str += ( uint16_t )machine.valveOutput ;
+          str += ( int16_t )machine.valveOutput ;
           str += ", dither: ";
           str += ( float )ditherAmount ;
           labelStatusOutputHandle->color = ControlColor::Emerald;
@@ -310,9 +310,8 @@ void diagnosticWorker1Hz( void* z ) {
           str += ( bool )( steerSetpoints.lastPacketReceived < safety.timeoutPoint ) ? "Yes" : "No" ;
           str += ", enabled: ";
           str += ( bool )steerSetpoints.enabled ? "Yes" : "No" ;
-          str += ", UDP ";
-          str += millis() - steerSetpoints.lastPacketReceived ;
-          str += " millis ago";
+          str += ",\n output: ";
+          str += ( int16_t )machine.valveOutput ;
           labelStatusOutputHandle->color = ControlColor::Emerald;
           ESPUI.updateLabel( labelStatusOutput, str );
         }
@@ -329,7 +328,7 @@ void diagnosticWorker1Hz( void* z ) {
           str += ", enabled: ";
           str += ( bool )steerSetpoints.enabled ? "Yes" : "No" ;
           str += ", output: ";
-          str += ( uint16_t )machine.valveOutput ;
+          str += ( int16_t )machine.valveOutput ;
           labelStatusOutputHandle->color = ControlColor::Emerald;
           ESPUI.updateLabel( labelStatusOutput, str );
         }
@@ -365,7 +364,7 @@ void diagnosticWorker1Hz( void* z ) {
           str += ", PID output: ";
           str += ( double )steerSetpoints.pidOutput ;
           str += "\nCanbus valve setpoint: ";
-          str += ( uint16_t )machine.valveOutput ;
+          str += ( int16_t )machine.valveOutput ;
           labelStatusOutputHandle->color = ControlColor::Emerald;
           ESPUI.updateLabel( labelStatusOutput, str );
         }
