@@ -503,6 +503,76 @@ void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
   }
 }
 
+void canVmcMcp2515Receiver10Hz( void* z ) { // Valtra-Massey-Challenger second bus
+  constexpr TickType_t xFrequency = 100;
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+
+  uint32_t canIdVmcScv = 0x00331;
+
+  int8_t SCK = 5, MISO = 16, MOSI = 17, CS = 0;
+  hspi = new SPIClass( HSPI );
+  hspi->begin( SCK, MISO, MOSI, CS );
+  pinMode( CS, OUTPUT );
+  MCP_CAN ISOBus( hspi, CS ); // Set SPI instance and CS
+
+  if( ISOBus.begin( MCP_STDEXT, CAN_250KBPS, MCP_16MHZ ) == CAN_OK ){
+    Serial.println( "MCP2515 started" );
+  } else{
+    Serial.println( "MCP2515 failed to start" );
+    String str;
+    str.reserve( 200 );
+    str += "MCP2515 failed to start";
+    ESPUI.updateLabel( labelStatusCanMCP2515, str );
+    vTaskDelete( NULL );
+  }
+  ISOBus.init_Mask( 0, 1, 0x00FFFF00 ); // Init first mask
+  ISOBus.init_Filt( 0, 1, canIdVmcScv ); // VMC hydraulic SCV
+  ISOBus.init_Filt( 1, 1, canIdVmcScv ); // VMC hydraulic SCV
+
+  ISOBus.init_Mask( 1, 1, 0x00FFFF00 ); // Init second mask
+  ISOBus.init_Filt( 2, 1, canIdVmcScv ); // VMC hydraulic SCV
+  ISOBus.init_Filt( 3, 1, canIdVmcScv ); // VMC hydraulic SCV
+  ISOBus.init_Filt( 4, 1, canIdVmcScv ); // VMC hydraulic SCV
+  ISOBus.init_Filt( 5, 1, canIdVmcScv ); // VMC hydraulic SCV
+  ISOBus.setMode( MCP_NORMAL );
+  long unsigned int rxId;
+  unsigned char len = 0;
+  unsigned char rxBuf[8];
+
+  for( ;; ) {
+
+    if( ISOBus.checkReceive() == CAN_MSGAVAIL ){
+      ISOBus.readMsgBuf( &rxId, &len, rxBuf );  // Read data: len = data length, buf = data byte(s)
+      if(( rxId & 0x80000000 ) != 0x80000000 ){ // standard frame
+        if( rxId == canIdVmcScv ){
+          machine.lastMCP2515CanbusMillis = millis();
+        }
+      }
+    } else {
+        static time_t loopTimeToWaitTo = 0;
+
+        if( loopTimeToWaitTo < millis() ) {
+
+          String str;
+          str.reserve( 200 );
+
+          str = String( rxId, HEX );
+          str += " ";
+          str += canIdVmcScv;
+          str += " ";
+          time_t elapse = millis() - machine.lastMCP2515CanbusMillis;
+          str += String( elapse / 1000 );
+          str += " seconds ago";
+
+          ESPUI.updateLabel( labelStatusCanMCP2515, str );
+
+          loopTimeToWaitTo = millis() + 1000;
+        }
+    }
+    vTaskDelayUntil( &xLastWakeTime, xFrequency );
+  }
+}
+
 void canbusStateMessage( void* z ){
   for( ;; ){
     if( canReceiverHandle == NULL ){
