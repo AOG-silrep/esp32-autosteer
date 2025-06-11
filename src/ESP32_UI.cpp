@@ -90,6 +90,7 @@ void initESPUI ( void ) {
         diagnostics.steerEnabledWithNoPower = 0;
         diagnostics.fuse1Shorted = 0;
         diagnostics.fuse2Shorted = 0;
+        diagnostics.UDPTimeout = 0;
         saveDiagnostics();
 
         Control* labelSteerEngagedFaultsHandle = ESPUI.getControl( labelSteerEngagedFaults );

@@ -383,7 +383,9 @@ void diagnosticWorker1Hz( void* z ) {
     str = ipDestination.toString();
     str += "\n";
     str += ( String )seconds;
-    str += " seconds ago";
+    str += " seconds ago\n";
+    str += diagnostics.UDPTimeout;
+    str += " UDP timeouts";
     labelAgOpenGpsAddressHandle->value = str;
     if( seconds > 5 ){
       labelAgOpenGpsAddressHandle->color = ControlColor::Alizarin;

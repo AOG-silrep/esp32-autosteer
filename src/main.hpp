@@ -66,6 +66,7 @@ struct Diagnostics {
   int8_t steerEnabledWithNoPower;
   int8_t fuse1Shorted;
   int8_t fuse2Shorted;
+  uint8_t UDPTimeout; // how many times AgOpenGPS steering UDP timed out
 };
 extern Diagnostics diagnostics;
 ///////////////////////////////////////////////////////////////////////////

@@ -64,6 +64,7 @@ bool previousAogEnabledState = false;
 bool AogToMachineEngagedMismatch = false; // do not update machine engaged state from AOG after switch change until round trip is completed
 bool ditherDirection = false;
 bool dtcAutosteerPrevious = false;
+bool UDPTimeout = true; // AOG will probably not be running at startup
 
 void ditherWorker10HZ( void* z ) {
 
@@ -178,6 +179,13 @@ void autosteerWorker100Hz( void* z ) {
              steerSetpoints.enabled == false ||
              steerSetpoints.speed < steerConfig.minAutosteerSpeed ||
              machine.autosteerSafetyLock == true ) {
+
+      if( steerSetpoints.lastPacketReceived < safety.timeoutPoint ){
+        if( UDPTimeout == false ){
+          UDPTimeout = true;
+          diagnostics.UDPTimeout++;
+        }
+      }
       
       switch( initialisation.outputType ) {
         case SteerConfig::OutputType::CanbusF0_240Controller: {
@@ -649,6 +657,7 @@ void initAutosteer() {
       // see pgn.xlsx in https://github.com/farmerbriantee/AgOpenGPS/tree/master/AgOpenGPS_Dev
       switch( pgn ) {
         case 0x7FFE: { // Autosteer message
+          UDPTimeout = false;
           steerSetpoints.speed = ( float )( (data[5] | data[6] << 8))*0.1 ;
           if( ( SteerConfig::SpeedUnits )steerConfig.speedUnits == SteerConfig::SpeedUnits::MilesPerHour ) {
             steerSetpoints.speed *= 0.62;
