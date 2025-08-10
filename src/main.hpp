@@ -263,6 +263,11 @@ struct SteerConfig {
     Hex18EF2CF0 = 1
   } canBusFendtEngageVersion = FendtEngageVersion::Hex18EF1CC8;
 
+  enum class HmsVersion : uint8_t {
+    None = 0,
+    DeereHex18FFFA21 = 1
+  } canbusHmsVersion = HmsVersion::None;
+
   float maxAutosteerSpeed = 10;
   uint8_t gpioAlarm = 4;
 

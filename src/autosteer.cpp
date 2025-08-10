@@ -65,6 +65,7 @@ bool AogToMachineEngagedMismatch = false; // do not update machine engaged state
 bool ditherDirection = false;
 bool dtcAutosteerPrevious = false;
 bool UDPTimeout = true; // AOG will probably not be running at startup
+uint8_t previousHydLift = 0;
 
 void ditherWorker10HZ( void* z ) {
 
@@ -701,6 +702,34 @@ void initAutosteer() {
           steerSetpoints.requestedSteerAngle = (( double ) ((( int16_t )data[8]) | (( int8_t )data[9] << 8 ))) * 0.01; //horrible code to make negative doubles work
 
           steerSetpoints.lastPacketReceived = millis();
+        }
+        break;
+        
+        case 0x7FEF: { // Machine message
+          if( steerConfig.canbusHmsVersion == SteerConfig::HmsVersion::DeereHex18FFFA21 && steerConfig.canBusEnabled ){
+            uint8_t hydLift = data[7];
+            if( hydLift != previousHydLift ){
+              previousHydLift = hydLift;
+              CAN_frame_t canFrame;
+              canFrame.MsgID = 0x18FFFA21;
+              canFrame.FIR.B.FF = CAN_frame_ext;
+              canFrame.FIR.B.DLC = 8;
+              canFrame.data.u8[0] = 0xFE;
+              canFrame.data.u8[1] = 0x34;
+              if( hydLift == 2 ){
+                canFrame.data.u8[2] = 0x02;
+              } else {
+                canFrame.data.u8[2] = 0x01;
+              }
+              Serial.println(canFrame.data.u8[2]);
+              canFrame.data.u8[3] = 0x00;
+              canFrame.data.u8[4] = 0xFF;
+              canFrame.data.u8[5] = 0xFF;
+              canFrame.data.u8[6] = 0xFF;
+              canFrame.data.u8[7] = 0xFF;
+              ESP32Can.CANWriteFrame( &canFrame );
+            }
+          }
         }
         break;
 

@@ -213,6 +213,15 @@ void initESPUI ( void ) {
       ESPUI.addControl( ControlType::Option, "250kB/s", "250", ControlColor::Alizarin, sel );
       ESPUI.addControl( ControlType::Option, "500kB/s", "500", ControlColor::Alizarin, sel );
     }
+
+    {
+      uint16_t sel = ESPUI.addControl( ControlType::Select, "HMS version*", String( ( int )steerConfig.canbusHmsVersion ), ControlColor::Peterriver, tab,
+      []( Control * control, int id ) {
+        steerConfig.canbusHmsVersion = ( SteerConfig::HmsVersion )control->value.toInt();
+      } );
+      ESPUI.addControl( ControlType::Option, "None", "0", ControlColor::Alizarin, sel );
+      ESPUI.addControl( ControlType::Option, "Deere 0x18FFFA21", "1", ControlColor::Alizarin, sel );
+    }
   }
 
   // Switches/Buttons Tab
