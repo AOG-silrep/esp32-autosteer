@@ -708,26 +708,27 @@ void initAutosteer() {
         case 0x7FEF: { // Machine message
           if( steerConfig.canbusHmsVersion == SteerConfig::HmsVersion::DeereHex18FFFA21 && steerConfig.canBusEnabled ){
             uint8_t hydLift = data[7];
-            if( hydLift != previousHydLift ){
-              previousHydLift = hydLift;
-              CAN_frame_t canFrame;
-              canFrame.MsgID = 0x18FFFA21;
-              canFrame.FIR.B.FF = CAN_frame_ext;
-              canFrame.FIR.B.DLC = 8;
-              canFrame.data.u8[0] = 0xFE;
-              canFrame.data.u8[1] = 0x34;
-              if( hydLift == 2 ){
-                canFrame.data.u8[2] = 0x02;
-              } else {
-                canFrame.data.u8[2] = 0x01;
+            if( hydLift != 0 ){ // enabled in AOG
+              if( hydLift != previousHydLift ){
+                previousHydLift = hydLift;
+                CAN_frame_t canFrame;
+                canFrame.MsgID = 0x18FFFA21;
+                canFrame.FIR.B.FF = CAN_frame_ext;
+                canFrame.FIR.B.DLC = 8;
+                canFrame.data.u8[0] = 0xFE;
+                canFrame.data.u8[1] = 0x34;
+                if( hydLift == 2 ){
+                  canFrame.data.u8[2] = 0x02;
+                } else {
+                  canFrame.data.u8[2] = 0x01;
+                }
+                canFrame.data.u8[3] = 0x00;
+                canFrame.data.u8[4] = 0xFF;
+                canFrame.data.u8[5] = 0xFF;
+                canFrame.data.u8[6] = 0xFF;
+                canFrame.data.u8[7] = 0xFF;
+                ESP32Can.CANWriteFrame( &canFrame );
               }
-              Serial.println(canFrame.data.u8[2]);
-              canFrame.data.u8[3] = 0x00;
-              canFrame.data.u8[4] = 0xFF;
-              canFrame.data.u8[5] = 0xFF;
-              canFrame.data.u8[6] = 0xFF;
-              canFrame.data.u8[7] = 0xFF;
-              ESP32Can.CANWriteFrame( &canFrame );
             }
           }
         }
