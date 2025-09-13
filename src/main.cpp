@@ -124,7 +124,7 @@ void setup( void ) {
   }
 
   if( steerConfig.enableOTA ) {
-    AsyncElegantOTA.begin( ESPUI.server );
+    AsyncElegantOTA.begin( ESPUI.WebServer() );
   }
 
   if( steerConfig.aogPortSendFrom != 0 ) {

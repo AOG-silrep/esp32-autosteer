@@ -763,7 +763,7 @@ void initESPUI ( void ) {
   title += steerConfig.hostname;
   ESPUI.begin( title.c_str() );
 
-  ESPUI.server->on( downloadFilename, HTTP_GET, []( AsyncWebServerRequest * request ) {
+  ESPUI.WebServer()->on( downloadFilename, HTTP_GET, []( AsyncWebServerRequest * request ) {
     
     Serial.print( "Preparing " );
     Serial.print( downloadFilename );
@@ -804,7 +804,7 @@ void initESPUI ( void ) {
   } );
   
   // upload a file to /upload-config
-  ESPUI.server->on( "/upload-config", HTTP_POST, []( AsyncWebServerRequest * request ) {
+  ESPUI.WebServer()->on( "/upload-config", HTTP_POST, []( AsyncWebServerRequest * request ) {
     request->send( 200 );
   }, [tabConfigurations]( AsyncWebServerRequest * request, String filename, size_t index, uint8_t* data, size_t len, bool final ) {
     if( !index ) {
