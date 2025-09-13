@@ -3,27 +3,33 @@
 #include "main.hpp"
 #include "esp_wifi.h"
 #include <WiFi.h>
-#include <ESP32Ping.h>
 
 IPAddress softApIP( 192, 168, 1, 1 );
 String apName;
 bool WiFiWasConnected = false;
 
 void WiFiStationGotIP( WiFiEvent_t event, WiFiEventInfo_t info ){
-    IPAddress myIP = WiFi.localIP();
+  IPAddress myIP = WiFi.localIP();
+  if( myIP == IPAddress( 0, 0, 0, 0 )) {
+    Serial.print("\nCollecting valid IP address ");
+    uint8_t timeout = 100;
+    while( timeout && myIP == IPAddress( 0, 0, 0, 0 )){
+      delay( 10 );
+      myIP = WiFi.localIP();
+      timeout--;
+      Serial.print(".");
+    }
+    if( timeout > 0 ){
+      Serial.println( ". done" );
+    } else {
+      Serial.println( "\nDHCP failed, module will not work, restarting..." );
+      ESP.restart();
+      delay( 100 );
+    }
+  }
     ipDestination = myIP;
     ipDestination[3] = 255;
     if( myIP[3] != 77 ){
-        IPAddress pingIP = myIP;
-        pingIP[3] = 77;
-        if( Ping.ping( pingIP, 2 )){
-          Serial.println( "Found a steer module on this network, disconnecting..." );
-          WiFi.disconnect( true );
-          delay( 100 );
-          Serial.println( "Falling back to access point only" );
-          WiFi.mode( WIFI_MODE_AP );
-          return;
-        }
         delay( 10 );
         IPAddress gwIP = WiFi.gatewayIP();
         delay( 10 );
