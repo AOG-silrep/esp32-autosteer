@@ -7,8 +7,5 @@
 [submodule "lib/AutoPID"]
 	path = lib/AutoPID
 	url = https://github.com/AOG-addendum/AutoPID.git
-[submodule "lib/ESPUI"]
-	path = lib/ESPUI
-	url = https://github.com/s00500/ESPUI.git
 [ESPUI "lib/ESPUI"]
 	master = master
