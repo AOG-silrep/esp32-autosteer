@@ -14,6 +14,7 @@ uint16_t labelSupplyVoltage;
 uint16_t labelSteerMotorCurrent;
 uint16_t labelSteerEngagedFaults;
 uint16_t labelSwitchStates;
+uint16_t labelRowSense;
 uint16_t buttonReset;
 
 uint16_t labelWheelAngleDisplacement;
@@ -83,6 +84,7 @@ void initESPUI ( void ) {
     labelSteerMotorCurrent = ESPUI.addControl( ControlType::Label, "Steer motor current:", "Not loaded", ControlColor::Emerald, tab );
     labelSteerEngagedFaults = ESPUI.addControl( ControlType::Label, "Steering engaged with no power:", "Not loaded", ControlColor::Emerald, tab );
     labelSwitchStates = ESPUI.addControl( ControlType::Label, "Switch states:", "Not loaded", ControlColor::Emerald, tab );
+    labelRowSense = ESPUI.addControl( ControlType::Label, "Row sense guidance:", "0°", ControlColor::Turquoise, tab );
     ESPUI.addControl( ControlType::Button, "Diagnostics:", "Reset all to zero", ControlColor::Emerald, tab, []( Control * control, int id ) {
       if( id == B_UP ) {
         diagnostics.steerSupplyVoltageMax = machine.steerSupplyVoltage;
@@ -484,6 +486,45 @@ void initESPUI ( void ) {
       //ESPUI.addControl( ControlType::Option, "1.024V (4x gain)", "1536", ControlColor::Alizarin, sel );
       //ESPUI.addControl( ControlType::Option, "0.512V (8x gain)", "2048", ControlColor::Alizarin, sel );
       //ESPUI.addControl( ControlType::Option, "0.256V (16x gain)", "2560", ControlColor::Alizarin, sel );
+    }
+  }
+
+  // Row Sense Tab
+  {
+    uint16_t tab = ESPUI.addControl( ControlType::Tab, "Row Sense", "Row Sense" );
+
+    {
+      ESPUI.addControl( ControlType::Switcher, "Enable Row Sense", steerConfig.enableRowSense ? "1" : "0", ControlColor::Peterriver, tab,
+      []( Control * control, int id ) {
+        steerConfig.enableRowSense = control->value.toInt() == 1;
+      } );
+    }
+
+    {
+      uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Center", String( steerConfig.rowSensePositionZero ), ControlColor::Peterriver, tab,
+      []( Control * control, int id ) {
+        steerConfig.rowSensePositionZero = control->value.toInt();
+      } );
+      ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
+      ESPUI.addControl( ControlType::Max, "Max", "65535", ControlColor::Peterriver, num );
+      ESPUI.addControl( ControlType::Step, "Step", "1", ControlColor::Peterriver, num );
+    }
+
+    {
+      uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Counts per Degree", String( steerConfig.rowSenseCountsPerDegree ), ControlColor::Peterriver, tab,
+      []( Control * control, int id ) {
+        steerConfig.rowSenseCountsPerDegree = control->value.toFloat();
+      } );
+      ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
+      ESPUI.addControl( ControlType::Max, "Max", "500", ControlColor::Peterriver, num );
+      ESPUI.addControl( ControlType::Step, "Step", "1.0", ControlColor::Peterriver, num );
+    }
+
+    {
+      ESPUI.addControl( ControlType::Switcher, "Invert Row Sense", steerConfig.invertRowSense ? "1" : "0", ControlColor::Peterriver, tab,
+      []( Control * control, int id ) {
+        steerConfig.invertRowSense = control->value.toInt() == 1;
+      } );
     }
   }
 

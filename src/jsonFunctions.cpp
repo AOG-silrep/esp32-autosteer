@@ -201,6 +201,11 @@ json parseSteerConfigToJson( const SteerConfig& config ) {
   j["wheelangle"]["tierod"]["MinimumAngle"] = config.wheelAngleMinimumAngle;
   j["wheelangle"]["tierod"]["TrackArmLenght"] = config.wheelAngleTrackArmLenght;
 
+  j["rowsense"]["enabled"] = config.enableRowSense;
+  j["rowsense"]["countsPerDegree"] = config.rowSenseCountsPerDegree;
+  j["rowsense"]["positionZero"] = config.rowSensePositionZero;
+  j["rowsense"]["invert"] = config.invertRowSense;
+
   j["canBus"]["enabled"] = config.canBusEnabled;
   j["canBus"]["speed"] = int( config.canBusSpeed );
   j["canBus"]["hitchThreshold"] = config.canBusHitchThreshold;
@@ -287,6 +292,11 @@ void parseJsonToSteerConfig( json& j, SteerConfig& config ) {
       config.wheelAngleTieRodStroke = j.value( "/wheelangle/tierod/TieRodStroke"_json_pointer, steerConfigDefaults.wheelAngleTieRodStroke );
       config.wheelAngleMinimumAngle = j.value( "/wheelangle/tierod/MinimumAngle"_json_pointer, steerConfigDefaults.wheelAngleMinimumAngle );
       config.wheelAngleTrackArmLenght = j.value( "/wheelangle/tierod/TrackArmLenght"_json_pointer, steerConfigDefaults.wheelAngleTrackArmLenght );
+
+      config.enableRowSense = j.value( "/rowsense/enabled"_json_pointer, steerConfigDefaults.enableRowSense );
+      config.rowSenseCountsPerDegree = j.value( "/rowsense/countsPerDegree"_json_pointer, steerConfigDefaults.rowSenseCountsPerDegree );
+      config.rowSensePositionZero = j.value( "/rowsense/positionZero"_json_pointer, steerConfigDefaults.rowSensePositionZero );
+      config.invertRowSense = j.value( "/rowsense/invert"_json_pointer, steerConfigDefaults.invertRowSense );
 
       config.canBusEnabled = j.value( "/canBus/enabled"_json_pointer, steerConfigDefaults.canBusEnabled );
       config.canBusSpeed = j.value( "/canBus/speed"_json_pointer, steerConfigDefaults.canBusSpeed );
