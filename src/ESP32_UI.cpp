@@ -669,20 +669,19 @@ void initESPUI ( void ) {
       ESPUI.addControl( ControlType::Option, "Motor current", "3", ControlColor::Alizarin, sel );
       ESPUI.addControl( ControlType::Option, "Logic input on GPIO12", "4", ControlColor::Alizarin, sel );
     }
-    {
-      uint16_t sel = ESPUI.addControl( ControlType::Switcher, "Heavy Duty Disengage Switch", steerConfig.disengageHeavyDuty ? "1" : "0" , ControlColor::Peterriver, tab,
-      []( Control * control, int id ) {
-        steerConfig.disengageHeavyDuty = control->value.toInt() == 1;
-        pinMode( steerConfig.gpioDisengagePullup, OUTPUT );
-        digitalWrite( steerConfig.gpioDisengagePullup, steerConfig.disengageHeavyDuty );
-      } );
-    }
 
     switch( steerConfig.disengageSwitchType ){
       case SteerConfig::DisengageSwitchType::Hydraulic: {
         ESPUI.addControl( ControlType::Switcher, "Hydraulic Switch Active Low", steerConfig.hydraulicSwitchActiveLow ? "1" : "0", ControlColor::Peterriver, tab,
         []( Control * control, int id ) {
           steerConfig.hydraulicSwitchActiveLow = control->value.toInt() == 1;
+        } );
+
+        uint16_t sel = ESPUI.addControl( ControlType::Switcher, "Heavy Duty Disengage Switch", steerConfig.disengageHeavyDuty ? "1" : "0" , ControlColor::Peterriver, tab,
+        []( Control * control, int id ) {
+          steerConfig.disengageHeavyDuty = control->value.toInt() == 1;
+          pinMode( steerConfig.gpioDisengagePullup, OUTPUT );
+          digitalWrite( steerConfig.gpioDisengagePullup, steerConfig.disengageHeavyDuty );
         } );
       }
       break;
