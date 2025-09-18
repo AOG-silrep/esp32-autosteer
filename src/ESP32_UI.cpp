@@ -127,24 +127,6 @@ void initESPUI ( void ) {
   {
     uint16_t tab = ESPUI.addControl( ControlType::Tab, "Network", "Network" );
 
-    {
-      uint16_t baudrate = ESPUI.addControl( ControlType::Select, "Baudrate Serial", String( steerConfig.baudrate ), ControlColor::Peterriver, tab,
-      []( Control * control, int id ) {
-        uint32_t baudrate = control->value.toInt();
-        steerConfig.baudrate = baudrate;
-        Serial.updateBaudRate( baudrate );
-      } );
-      ESPUI.addControl( ControlType::Option, "4800", "4800", ControlColor::Alizarin, baudrate );
-      ESPUI.addControl( ControlType::Option, "9600", "9600", ControlColor::Alizarin, baudrate );
-      ESPUI.addControl( ControlType::Option, "19200", "19200", ControlColor::Alizarin, baudrate );
-      ESPUI.addControl( ControlType::Option, "38400", "38400", ControlColor::Alizarin, baudrate );
-      ESPUI.addControl( ControlType::Option, "57600", "57600", ControlColor::Alizarin, baudrate );
-      ESPUI.addControl( ControlType::Option, "115200", "115200", ControlColor::Alizarin, baudrate );
-      ESPUI.addControl( ControlType::Option, "230400", "230400", ControlColor::Alizarin, baudrate );
-      ESPUI.addControl( ControlType::Option, "460800", "460800", ControlColor::Alizarin, baudrate );
-      ESPUI.addControl( ControlType::Option, "921600", "921600", ControlColor::Alizarin, baudrate );
-    }
-
     ESPUI.addControl( ControlType::Text, "SSID*", String( steerConfig.ssid ), ControlColor::Wetasphalt, tab,
     []( Control * control, int id ) {
       control->value.toCharArray( steerConfig.ssid, sizeof( steerConfig.ssid ) );
@@ -161,28 +143,6 @@ void initESPUI ( void ) {
       setResetButtonToRed();
     } );
 
-    ESPUI.addControl( ControlType::Switcher, "OTA Enabled*", steerConfig.enableOTA ? "1" : "0", ControlColor::Wetasphalt, tab,
-    []( Control * control, int id ) {
-      steerConfig.enableOTA = control->value.toInt() == 1;
-      setResetButtonToRed();
-    } );
-
-    ESPUI.addControl( ControlType::Number, "Port to send from*", String( steerConfig.aogPortSendFrom ), ControlColor::Wetasphalt, tab,
-    []( Control * control, int id ) {
-      steerConfig.aogPortSendFrom = control->value.toInt();
-      setResetButtonToRed();
-    } );
-
-    ESPUI.addControl( ControlType::Number, "Port to send to*", String( steerConfig.aogPortSendTo ), ControlColor::Wetasphalt, tab,
-    []( Control * control, int id ) {
-      steerConfig.aogPortSendTo = control->value.toInt();
-      setResetButtonToRed();
-    } );
-    ESPUI.addControl( ControlType::Number, "Port to listen to*", String( steerConfig.aogPortListenTo ), ControlColor::Wetasphalt, tab,
-    []( Control * control, int id ) {
-      steerConfig.aogPortListenTo = control->value.toInt();
-      setResetButtonToRed();
-    } );
   }
 
   // CAN Bus

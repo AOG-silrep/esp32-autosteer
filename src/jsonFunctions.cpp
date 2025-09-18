@@ -222,13 +222,6 @@ json parseSteerConfigToJson( const SteerConfig& config ) {
   j["safety"]["steeringShuntVoltsPerAmp"] = config.steeringShuntVoltsPerAmp;
   j["safety"]["maxSteerCurrent"] = config.maxSteerCurrent;
 
-  j["connection"]["baudrate"] = config.baudrate;
-  j["connection"]["enableOTA"] = config.enableOTA;
-
-  j["connection"]["aog"]["sendFrom"] = config.aogPortSendFrom;
-  j["connection"]["aog"]["listenTo"] = config.aogPortListenTo;
-  j["connection"]["aog"]["sendTo"] = config.aogPortSendTo;
-
   return j;
 }
 
@@ -313,13 +306,6 @@ void parseJsonToSteerConfig( json& j, SteerConfig& config ) {
       config.speedUnits = j.value( "/safety/speedUnits"_json_pointer, steerConfigDefaults.speedUnits );
       config.steeringShuntVoltsPerAmp = j.value( "/safety/steeringShuntVoltsPerAmp"_json_pointer, steerConfigDefaults.steeringShuntVoltsPerAmp );
       config.maxSteerCurrent = j.value( "/safety/maxSteerCurrent"_json_pointer, steerConfigDefaults.maxSteerCurrent );
-
-      config.baudrate = j.value( "/connection/baudrate"_json_pointer, steerConfigDefaults.baudrate );
-      config.enableOTA = j.value( "/connection/enableOTA"_json_pointer, steerConfigDefaults.enableOTA );
-
-      config.aogPortSendFrom = j.value( "/connection/aog/sendFrom"_json_pointer, steerConfigDefaults.aogPortSendFrom );
-      config.aogPortListenTo = j.value( "/connection/aog/listenTo"_json_pointer, steerConfigDefaults.aogPortListenTo );
-      config.aogPortSendTo = j.value( "/connection/aog/sendTo"_json_pointer, steerConfigDefaults.aogPortSendTo );
 
     } catch( json::exception& e ) {
       // output exception information

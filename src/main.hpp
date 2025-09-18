@@ -145,8 +145,6 @@ struct SteerConfig {
   char hostname[24] = "ESP32-Steer";
   uint8_t apModePin = 13;
 
-  uint32_t baudrate = 115200;
-
   bool enableOTA = false;
 
   //set to 1  if you want to use Steering Motor + Cytron MD30C Driver
@@ -278,10 +276,6 @@ struct SteerConfig {
 
   float maxAutosteerSpeed = 10;
   uint8_t gpioAlarm = 4;
-
-  uint16_t aogPortSendFrom = 5577;
-  uint16_t aogPortListenTo = 8888;
-  uint16_t aogPortSendTo = 9999;
 
   bool retainWifiSettings = true;
 };
