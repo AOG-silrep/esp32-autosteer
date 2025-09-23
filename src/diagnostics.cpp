@@ -393,6 +393,28 @@ void diagnosticWorker1Hz( void* z ) {
       labelAgOpenGpsAddressHandle->color = ControlColor::Turquoise;
     }
     ESPUI.updateControl( labelAgOpenGpsAddressHandle );
+    
+    Control* labelRowSenseHandle = ESPUI.getControl( labelRowSense );
+    if( steerConfig.enableRowSense ){
+      str = "Voltage: ";
+      str += ( double )machine.rowSenseVoltageOne;
+      str += " & ";
+      str += ( double )machine.rowSenseVoltageTwo;
+      str += "\nCounts: ";
+      str += ( uint16_t )steerSetpoints.rowSenseCounts;
+      str += "\nAngle: ";
+      str += ( double )steerSetpoints.rowSenseAngle;
+      if( steerSetpoints.rowSenseCounts == 0 ){
+        labelRowSenseHandle->color = ControlColor::Alizarin;
+      } else labelRowSenseHandle->color = ControlColor::Emerald;
+    } else {
+      str = "Not enabled";
+      labelRowSenseHandle->color = ControlColor::Turquoise;
+    }
+    
+    labelRowSenseHandle->value = str;
+    ESPUI.updateControl( labelRowSenseHandle );
+
     vTaskDelayUntil( &xLastWakeTime, xFrequency );
   }
 }

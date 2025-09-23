@@ -14,6 +14,7 @@ uint16_t labelSupplyVoltage;
 uint16_t labelSteerMotorCurrent;
 uint16_t labelSteerEngagedFaults;
 uint16_t labelSwitchStates;
+uint16_t labelRowSense;
 uint16_t buttonReset;
 
 uint16_t labelWheelAngleDisplacement;
@@ -83,6 +84,7 @@ void initESPUI ( void ) {
     labelSteerMotorCurrent = ESPUI.addControl( ControlType::Label, "Steer motor current:", "Not loaded", ControlColor::Emerald, tab );
     labelSteerEngagedFaults = ESPUI.addControl( ControlType::Label, "Steering engaged with no power:", "Not loaded", ControlColor::Emerald, tab );
     labelSwitchStates = ESPUI.addControl( ControlType::Label, "Switch states:", "Not loaded", ControlColor::Emerald, tab );
+    labelRowSense = ESPUI.addControl( ControlType::Label, "Row sense guidance:", "0°", ControlColor::Turquoise, tab );
     ESPUI.addControl( ControlType::Button, "Diagnostics:", "Reset all to zero", ControlColor::Emerald, tab, []( Control * control, int id ) {
       if( id == B_UP ) {
         diagnostics.steerSupplyVoltageMax = machine.steerSupplyVoltage;
@@ -125,24 +127,6 @@ void initESPUI ( void ) {
   {
     uint16_t tab = ESPUI.addControl( ControlType::Tab, "Network", "Network" );
 
-    {
-      uint16_t baudrate = ESPUI.addControl( ControlType::Select, "Baudrate Serial", String( steerConfig.baudrate ), ControlColor::Peterriver, tab,
-      []( Control * control, int id ) {
-        uint32_t baudrate = control->value.toInt();
-        steerConfig.baudrate = baudrate;
-        Serial.updateBaudRate( baudrate );
-      } );
-      ESPUI.addControl( ControlType::Option, "4800", "4800", ControlColor::Alizarin, baudrate );
-      ESPUI.addControl( ControlType::Option, "9600", "9600", ControlColor::Alizarin, baudrate );
-      ESPUI.addControl( ControlType::Option, "19200", "19200", ControlColor::Alizarin, baudrate );
-      ESPUI.addControl( ControlType::Option, "38400", "38400", ControlColor::Alizarin, baudrate );
-      ESPUI.addControl( ControlType::Option, "57600", "57600", ControlColor::Alizarin, baudrate );
-      ESPUI.addControl( ControlType::Option, "115200", "115200", ControlColor::Alizarin, baudrate );
-      ESPUI.addControl( ControlType::Option, "230400", "230400", ControlColor::Alizarin, baudrate );
-      ESPUI.addControl( ControlType::Option, "460800", "460800", ControlColor::Alizarin, baudrate );
-      ESPUI.addControl( ControlType::Option, "921600", "921600", ControlColor::Alizarin, baudrate );
-    }
-
     ESPUI.addControl( ControlType::Text, "SSID*", String( steerConfig.ssid ), ControlColor::Wetasphalt, tab,
     []( Control * control, int id ) {
       control->value.toCharArray( steerConfig.ssid, sizeof( steerConfig.ssid ) );
@@ -159,28 +143,6 @@ void initESPUI ( void ) {
       setResetButtonToRed();
     } );
 
-    ESPUI.addControl( ControlType::Switcher, "OTA Enabled*", steerConfig.enableOTA ? "1" : "0", ControlColor::Wetasphalt, tab,
-    []( Control * control, int id ) {
-      steerConfig.enableOTA = control->value.toInt() == 1;
-      setResetButtonToRed();
-    } );
-
-    ESPUI.addControl( ControlType::Number, "Port to send from*", String( steerConfig.aogPortSendFrom ), ControlColor::Wetasphalt, tab,
-    []( Control * control, int id ) {
-      steerConfig.aogPortSendFrom = control->value.toInt();
-      setResetButtonToRed();
-    } );
-
-    ESPUI.addControl( ControlType::Number, "Port to send to*", String( steerConfig.aogPortSendTo ), ControlColor::Wetasphalt, tab,
-    []( Control * control, int id ) {
-      steerConfig.aogPortSendTo = control->value.toInt();
-      setResetButtonToRed();
-    } );
-    ESPUI.addControl( ControlType::Number, "Port to listen to*", String( steerConfig.aogPortListenTo ), ControlColor::Wetasphalt, tab,
-    []( Control * control, int id ) {
-      steerConfig.aogPortListenTo = control->value.toInt();
-      setResetButtonToRed();
-    } );
   }
 
   // CAN Bus
@@ -480,10 +442,49 @@ void initESPUI ( void ) {
       } );
       ESPUI.addControl( ControlType::Option, "6.144V (2/3x gain)", "0", ControlColor::Alizarin, sel );
       ESPUI.addControl( ControlType::Option, "4.096V (1x gain)", "512", ControlColor::Alizarin, sel );
-      ESPUI.addControl( ControlType::Option, "2.048V (2x gain)", "1024", ControlColor::Alizarin, sel );
-      ESPUI.addControl( ControlType::Option, "1.024V (4x gain)", "1536", ControlColor::Alizarin, sel );
-      ESPUI.addControl( ControlType::Option, "0.512V (8x gain)", "2048", ControlColor::Alizarin, sel );
-      ESPUI.addControl( ControlType::Option, "0.256V (16x gain)", "2560", ControlColor::Alizarin, sel );
+      //ESPUI.addControl( ControlType::Option, "2.048V (2x gain)", "1024", ControlColor::Alizarin, sel );
+      //ESPUI.addControl( ControlType::Option, "1.024V (4x gain)", "1536", ControlColor::Alizarin, sel );
+      //ESPUI.addControl( ControlType::Option, "0.512V (8x gain)", "2048", ControlColor::Alizarin, sel );
+      //ESPUI.addControl( ControlType::Option, "0.256V (16x gain)", "2560", ControlColor::Alizarin, sel );
+    }
+  }
+
+  // Row Sense Tab
+  {
+    uint16_t tab = ESPUI.addControl( ControlType::Tab, "Row Sense", "Row Sense" );
+
+    {
+      ESPUI.addControl( ControlType::Switcher, "Enable Row Sense", steerConfig.enableRowSense ? "1" : "0", ControlColor::Peterriver, tab,
+      []( Control * control, int id ) {
+        steerConfig.enableRowSense = control->value.toInt() == 1;
+      } );
+    }
+
+    {
+      uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Center", String( steerConfig.rowSensePositionZero ), ControlColor::Peterriver, tab,
+      []( Control * control, int id ) {
+        steerConfig.rowSensePositionZero = control->value.toInt();
+      } );
+      ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
+      ESPUI.addControl( ControlType::Max, "Max", "65535", ControlColor::Peterriver, num );
+      ESPUI.addControl( ControlType::Step, "Step", "1", ControlColor::Peterriver, num );
+    }
+
+    {
+      uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Counts per Degree", String( steerConfig.rowSenseCountsPerDegree ), ControlColor::Peterriver, tab,
+      []( Control * control, int id ) {
+        steerConfig.rowSenseCountsPerDegree = control->value.toFloat();
+      } );
+      ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
+      ESPUI.addControl( ControlType::Max, "Max", "500", ControlColor::Peterriver, num );
+      ESPUI.addControl( ControlType::Step, "Step", "1.0", ControlColor::Peterriver, num );
+    }
+
+    {
+      ESPUI.addControl( ControlType::Switcher, "Invert Row Sense", steerConfig.invertRowSense ? "1" : "0", ControlColor::Peterriver, tab,
+      []( Control * control, int id ) {
+        steerConfig.invertRowSense = control->value.toInt() == 1;
+      } );
     }
   }
 
@@ -668,20 +669,19 @@ void initESPUI ( void ) {
       ESPUI.addControl( ControlType::Option, "Motor current", "3", ControlColor::Alizarin, sel );
       ESPUI.addControl( ControlType::Option, "Logic input on GPIO12", "4", ControlColor::Alizarin, sel );
     }
-    {
-      uint16_t sel = ESPUI.addControl( ControlType::Switcher, "Heavy Duty Disengage Switch", steerConfig.disengageHeavyDuty ? "1" : "0" , ControlColor::Peterriver, tab,
-      []( Control * control, int id ) {
-        steerConfig.disengageHeavyDuty = control->value.toInt() == 1;
-        pinMode( steerConfig.gpioDisengagePullup, OUTPUT );
-        digitalWrite( steerConfig.gpioDisengagePullup, steerConfig.disengageHeavyDuty );
-      } );
-    }
 
     switch( steerConfig.disengageSwitchType ){
       case SteerConfig::DisengageSwitchType::Hydraulic: {
         ESPUI.addControl( ControlType::Switcher, "Hydraulic Switch Active Low", steerConfig.hydraulicSwitchActiveLow ? "1" : "0", ControlColor::Peterriver, tab,
         []( Control * control, int id ) {
           steerConfig.hydraulicSwitchActiveLow = control->value.toInt() == 1;
+        } );
+
+        uint16_t sel = ESPUI.addControl( ControlType::Switcher, "Heavy Duty Disengage Switch", steerConfig.disengageHeavyDuty ? "1" : "0" , ControlColor::Peterriver, tab,
+        []( Control * control, int id ) {
+          steerConfig.disengageHeavyDuty = control->value.toInt() == 1;
+          pinMode( steerConfig.gpioDisengagePullup, OUTPUT );
+          digitalWrite( steerConfig.gpioDisengagePullup, steerConfig.disengageHeavyDuty );
         } );
       }
       break;

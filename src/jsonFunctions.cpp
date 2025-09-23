@@ -201,6 +201,11 @@ json parseSteerConfigToJson( const SteerConfig& config ) {
   j["wheelangle"]["tierod"]["MinimumAngle"] = config.wheelAngleMinimumAngle;
   j["wheelangle"]["tierod"]["TrackArmLenght"] = config.wheelAngleTrackArmLenght;
 
+  j["rowsense"]["enabled"] = config.enableRowSense;
+  j["rowsense"]["countsPerDegree"] = config.rowSenseCountsPerDegree;
+  j["rowsense"]["positionZero"] = config.rowSensePositionZero;
+  j["rowsense"]["invert"] = config.invertRowSense;
+
   j["canBus"]["enabled"] = config.canBusEnabled;
   j["canBus"]["speed"] = int( config.canBusSpeed );
   j["canBus"]["hitchThreshold"] = config.canBusHitchThreshold;
@@ -216,13 +221,6 @@ json parseSteerConfigToJson( const SteerConfig& config ) {
   j["safety"]["speedUnits"] = config.speedUnits;
   j["safety"]["steeringShuntVoltsPerAmp"] = config.steeringShuntVoltsPerAmp;
   j["safety"]["maxSteerCurrent"] = config.maxSteerCurrent;
-
-  j["connection"]["baudrate"] = config.baudrate;
-  j["connection"]["enableOTA"] = config.enableOTA;
-
-  j["connection"]["aog"]["sendFrom"] = config.aogPortSendFrom;
-  j["connection"]["aog"]["listenTo"] = config.aogPortListenTo;
-  j["connection"]["aog"]["sendTo"] = config.aogPortSendTo;
 
   return j;
 }
@@ -288,6 +286,11 @@ void parseJsonToSteerConfig( json& j, SteerConfig& config ) {
       config.wheelAngleMinimumAngle = j.value( "/wheelangle/tierod/MinimumAngle"_json_pointer, steerConfigDefaults.wheelAngleMinimumAngle );
       config.wheelAngleTrackArmLenght = j.value( "/wheelangle/tierod/TrackArmLenght"_json_pointer, steerConfigDefaults.wheelAngleTrackArmLenght );
 
+      config.enableRowSense = j.value( "/rowsense/enabled"_json_pointer, steerConfigDefaults.enableRowSense );
+      config.rowSenseCountsPerDegree = j.value( "/rowsense/countsPerDegree"_json_pointer, steerConfigDefaults.rowSenseCountsPerDegree );
+      config.rowSensePositionZero = j.value( "/rowsense/positionZero"_json_pointer, steerConfigDefaults.rowSensePositionZero );
+      config.invertRowSense = j.value( "/rowsense/invert"_json_pointer, steerConfigDefaults.invertRowSense );
+
       config.canBusEnabled = j.value( "/canBus/enabled"_json_pointer, steerConfigDefaults.canBusEnabled );
       config.canBusSpeed = j.value( "/canBus/speed"_json_pointer, steerConfigDefaults.canBusSpeed );
       config.canBusHitchThreshold = j.value( "/canBus/hitchThreshold"_json_pointer, steerConfigDefaults.canBusHitchThreshold );
@@ -303,13 +306,6 @@ void parseJsonToSteerConfig( json& j, SteerConfig& config ) {
       config.speedUnits = j.value( "/safety/speedUnits"_json_pointer, steerConfigDefaults.speedUnits );
       config.steeringShuntVoltsPerAmp = j.value( "/safety/steeringShuntVoltsPerAmp"_json_pointer, steerConfigDefaults.steeringShuntVoltsPerAmp );
       config.maxSteerCurrent = j.value( "/safety/maxSteerCurrent"_json_pointer, steerConfigDefaults.maxSteerCurrent );
-
-      config.baudrate = j.value( "/connection/baudrate"_json_pointer, steerConfigDefaults.baudrate );
-      config.enableOTA = j.value( "/connection/enableOTA"_json_pointer, steerConfigDefaults.enableOTA );
-
-      config.aogPortSendFrom = j.value( "/connection/aog/sendFrom"_json_pointer, steerConfigDefaults.aogPortSendFrom );
-      config.aogPortListenTo = j.value( "/connection/aog/listenTo"_json_pointer, steerConfigDefaults.aogPortListenTo );
-      config.aogPortSendTo = j.value( "/connection/aog/sendTo"_json_pointer, steerConfigDefaults.aogPortSendTo );
 
     } catch( json::exception& e ) {
       // output exception information

@@ -45,6 +45,7 @@ extern uint16_t labelSupplyVoltage;
 extern uint16_t labelSteerMotorCurrent;
 extern uint16_t labelSteerEngagedFaults;
 extern uint16_t labelSwitchStates;
+extern uint16_t labelRowSense;
 
 extern uint16_t labelAgOpenGpsAddress;
 extern uint16_t labelStatusOutput;
@@ -98,6 +99,8 @@ struct Machine {
   uint16_t DeereDutyDisengage;
   uint16_t steerMotorCurrent; // steering motor current
   double steerSupplyVoltage; // voltage from machine, also feeds the steering valve
+  double rowSenseVoltageOne = 0;
+  double rowSenseVoltageTwo = 0;
   float wheelAngle; // wheel angle in degrees
   time_t lastCanbusSteeringMillis; // last time a CANBUS steering message was received
   time_t lastCanbusWasMillis; // last time a WAS CANBUS message was received
@@ -119,6 +122,11 @@ struct SteerConfig {
     CanbusJCB               = 403
   };
 
+  bool enableRowSense = false;
+  uint16_t rowSenseCountsPerDegree;
+  uint16_t rowSensePositionZero;
+  bool invertRowSense;
+
   enum class SpeedUnits : int8_t {
     MilesPerHour      = 0,
     KilometersPerHour = 1
@@ -136,8 +144,6 @@ struct SteerConfig {
   char password[24] = "password";
   char hostname[24] = "ESP32-Steer";
   uint8_t apModePin = 13;
-
-  uint32_t baudrate = 115200;
 
   bool enableOTA = false;
 
@@ -271,10 +277,6 @@ struct SteerConfig {
   float maxAutosteerSpeed = 10;
   uint8_t gpioAlarm = 4;
 
-  uint16_t aogPortSendFrom = 5577;
-  uint16_t aogPortListenTo = 8888;
-  uint16_t aogPortSendTo = 9999;
-
   bool retainWifiSettings = true;
 };
 extern SteerConfig steerConfig, steerConfigDefaults;
@@ -318,6 +320,9 @@ struct SteerSetpoints {
   time_t lastEngagedChangeMillis = 0;
   float receivedRoll = 0;
   double actualSteerAngle = 0;
+  double adjustedSteerAngle = 0;
+  uint16_t rowSenseCounts = 0;
+  double rowSenseAngle; // row sense feedback for header->WAS offset
   double wheelAngleCounts = 0;
   double wheelAngleCurrentDisplacement = 0;
   double wheelAngleRaw = 0;

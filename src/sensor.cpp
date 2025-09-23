@@ -58,7 +58,8 @@ class  FilterBuLp2_3 {
               ( v[0] + v[2] )
               + 2 * v[1];
     }
-} wheelAngleSensorFilter;
+};
+FilterBuLp2_3 wheelAngleSensorFilter, rowSenseFilter;
 
 void sensorWorker100HzPoller( void* z ) {
   vTaskDelay( 2000 );
@@ -157,6 +158,31 @@ void sensorWorker100HzPoller( void* z ) {
       wheelAngleTmp = wheelAngleSensorFilter.step( wheelAngleTmp );
       steerSetpoints.actualSteerAngle = wheelAngleTmp;
 
+      if( steerConfig.enableRowSense ){
+        machine.rowSenseVoltageOne = ads.readADC_SingleEnded_V( 2 ) * 1.59;
+        machine.rowSenseVoltageTwo = ads.readADC_SingleEnded_V( 3 ) * 1.59;
+        if( max( machine.rowSenseVoltageOne, machine.rowSenseVoltageTwo ) < 4.7 &&
+            min( machine.rowSenseVoltageOne, machine.rowSenseVoltageTwo ) > 0.3 ){
+          double rowSenseTmp = ads.readADC_SingleEnded( 2 );
+          rowSenseTmp += ads.readADC_SingleEnded( 3 );
+          rowSenseTmp /= 2;
+          steerSetpoints.rowSenseCounts = rowSenseTmp;
+          rowSenseTmp -= steerConfig.rowSensePositionZero;
+          rowSenseTmp /= steerConfig.rowSenseCountsPerDegree;
+          if( steerConfig.invertRowSense ){
+            rowSenseTmp *= ( float ) -1;
+          }
+          rowSenseTmp = rowSenseFilter.step( rowSenseTmp );
+          steerSetpoints.rowSenseAngle = rowSenseTmp;
+          steerSetpoints.adjustedSteerAngle = steerSetpoints.actualSteerAngle + steerSetpoints.rowSenseAngle;
+        } else {
+          steerSetpoints.rowSenseCounts = 0;
+          steerSetpoints.rowSenseAngle = 0.00;
+          steerSetpoints.adjustedSteerAngle = steerSetpoints.actualSteerAngle;
+        }
+      } else {
+        steerSetpoints.adjustedSteerAngle = steerSetpoints.actualSteerAngle;
+      }
     }
     
 

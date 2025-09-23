@@ -74,8 +74,6 @@ void setup( void ) {
   loadSavedConfig();
   loadSavedDiagnostics();
 
-  Serial.updateBaudRate( steerConfig.baudrate );
-
   Serial.println( "Welcome to esp32-aog.\nThe selected mode is AgOpenGps.\nTo configure, please open the webui." );
 
   pinMode( steerConfig.apModePin, OUTPUT );
@@ -123,19 +121,7 @@ void setup( void ) {
   ESPUI.updateLabel( labelSteerEngagedFaults, str );
   }
 
-  if( steerConfig.enableOTA ) {
-    AsyncElegantOTA.begin( ESPUI.WebServer() );
-  }
-
-  if( steerConfig.aogPortSendFrom != 0 ) {
-    initialisation.portSendFrom = steerConfig.aogPortSendFrom;
-  }
-  if( steerConfig.aogPortListenTo != 0 ) {
-    initialisation.portListenTo = steerConfig.aogPortListenTo;
-  }
-  if( steerConfig.aogPortSendTo != 0 ) {
-    initialisation.portSendTo = steerConfig.aogPortSendTo;
-  }
+  AsyncElegantOTA.begin( ESPUI.WebServer() );
 
   initIdleStats();
   initCan();
