@@ -380,12 +380,20 @@ void diagnosticWorker1Hz( void* z ) {
     time_t seconds = ( millis() - lastHelloReceivedMillis ) / 1000;
     String str;
     str.reserve( 30 );
-    str = ipDestination.toString();
-    str += "\n";
+    str = "IP Address ";
+    str += ipDestination.toString();
+    str += " ";
     str += ( String )seconds;
     str += " seconds ago\n";
     str += diagnostics.UDPTimeout;
-    str += " UDP timeouts";
+    str += " UDP timeouts\nUDP received ";
+    if( millis() - steerSetpoints.lastPacketReceived > 1000 ){
+      str += ( String )(( millis() - steerSetpoints.lastPacketReceived ) / 1000 );
+      str += " seconds ago";
+    } else {
+      str += ( String )( steerSetpoints.lastPacketReceived - steerSetpoints.previousPacketReceived );
+      str += " millis apart";
+    }
     labelAgOpenGpsAddressHandle->value = str;
     if( seconds > 5 ){
       labelAgOpenGpsAddressHandle->color = ControlColor::Alizarin;

@@ -701,6 +701,7 @@ void initAutosteer() {
           }
           steerSetpoints.requestedSteerAngle = (( double ) ((( int16_t )data[8]) | (( int8_t )data[9] << 8 ))) * 0.01; //horrible code to make negative doubles work
 
+          steerSetpoints.previousPacketReceived = steerSetpoints.lastPacketReceived;
           steerSetpoints.lastPacketReceived = millis();
         }
         break;

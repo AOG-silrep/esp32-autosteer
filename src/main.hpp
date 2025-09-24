@@ -329,6 +329,7 @@ struct SteerSetpoints {
   double pidOutput = 0;
   float correction = 0;
 
+  time_t previousPacketReceived = 0;
   time_t lastPacketReceived = 0;
 };
 extern SteerSetpoints steerSetpoints;
