@@ -125,6 +125,8 @@ struct SteerConfig {
   bool enableRowSense = false;
   uint16_t rowSenseCountsPerDegree;
   uint16_t rowSensePositionZero;
+  uint16_t rowSenseMaxDegrees;
+  float rowSenseKi;
   bool invertRowSense;
 
   enum class SpeedUnits : int8_t {

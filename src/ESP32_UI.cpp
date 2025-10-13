@@ -454,37 +454,60 @@ void initESPUI ( void ) {
     uint16_t tab = ESPUI.addControl( ControlType::Tab, "Row Sense", "Row Sense" );
 
     {
-      ESPUI.addControl( ControlType::Switcher, "Enable Row Sense", steerConfig.enableRowSense ? "1" : "0", ControlColor::Peterriver, tab,
+      ESPUI.addControl( ControlType::Switcher, "Enable Row Sense*", steerConfig.enableRowSense ? "1" : "0", ControlColor::Wetasphalt, tab,
       []( Control * control, int id ) {
         steerConfig.enableRowSense = control->value.toInt() == 1;
+        setResetButtonToRed();
       } );
     }
 
-    {
-      uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Center", String( steerConfig.rowSensePositionZero ), ControlColor::Peterriver, tab,
-      []( Control * control, int id ) {
-        steerConfig.rowSensePositionZero = control->value.toInt();
-      } );
-      ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
-      ESPUI.addControl( ControlType::Max, "Max", "65535", ControlColor::Peterriver, num );
-      ESPUI.addControl( ControlType::Step, "Step", "1", ControlColor::Peterriver, num );
-    }
+    if( steerConfig.enableRowSense ){
+      {
+        uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Center", String( steerConfig.rowSensePositionZero ), ControlColor::Peterriver, tab,
+        []( Control * control, int id ) {
+          steerConfig.rowSensePositionZero = control->value.toInt();
+        } );
+        ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Max, "Max", "65535", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Step, "Step", "1", ControlColor::Peterriver, num );
+      }
 
-    {
-      uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Counts per Degree", String( steerConfig.rowSenseCountsPerDegree ), ControlColor::Peterriver, tab,
-      []( Control * control, int id ) {
-        steerConfig.rowSenseCountsPerDegree = control->value.toFloat();
-      } );
-      ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
-      ESPUI.addControl( ControlType::Max, "Max", "500", ControlColor::Peterriver, num );
-      ESPUI.addControl( ControlType::Step, "Step", "1.0", ControlColor::Peterriver, num );
-    }
+      {
+        uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Counts per Degree", String( steerConfig.rowSenseCountsPerDegree ), ControlColor::Peterriver, tab,
+        []( Control * control, int id ) {
+          steerConfig.rowSenseCountsPerDegree = control->value.toFloat();
+        } );
+        ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Max, "Max", "500", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Step, "Step", "1.0", ControlColor::Peterriver, num );
+      }
 
-    {
-      ESPUI.addControl( ControlType::Switcher, "Invert Row Sense", steerConfig.invertRowSense ? "1" : "0", ControlColor::Peterriver, tab,
-      []( Control * control, int id ) {
-        steerConfig.invertRowSense = control->value.toInt() == 1;
-      } );
+      {
+        ESPUI.addControl( ControlType::Switcher, "Invert Row Sense", steerConfig.invertRowSense ? "1" : "0", ControlColor::Peterriver, tab,
+        []( Control * control, int id ) {
+          steerConfig.invertRowSense = control->value.toInt() == 1;
+        } );
+      }
+
+      {
+        uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Max Degrees", String( steerConfig.rowSenseMaxDegrees ), ControlColor::Peterriver, tab,
+        []( Control * control, int id ) {
+          steerConfig.rowSenseMaxDegrees = control->value.toFloat();
+        } );
+        ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Max, "Max", "50", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Step, "Step", "1.0", ControlColor::Peterriver, num );
+      }
+
+      {
+        uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Ki", String( steerConfig.rowSenseKi ), ControlColor::Peterriver, tab,
+        []( Control * control, int id ) {
+          steerConfig.rowSenseKi = control->value.toFloat();
+        } );
+        ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Max, "Max", "500", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Step, "Step", "1.0", ControlColor::Peterriver, num );
+      }
     }
   }
 

@@ -37,6 +37,8 @@ Adafruit_ADS1115 ads = Adafruit_ADS1115( 0x48 );
 volatile time_t DeereWasOnTime;
 volatile time_t DeereWasOffTime;
 
+float rowSenseIntegrator; // integrator for Row Sense steering
+
 // http://www.schwietering.com/jayduino/filtuino/index.php?characteristic=bu&passmode=lp&order=2&usesr=usesr&sr=100&frequencyLow=5&noteLow=&noteHigh=&pw=pw&calctype=float&run=Send
 //Low pass butterworth filter order=2 alpha1=0.05
 class  FilterBuLp2_3 {
@@ -172,6 +174,13 @@ void sensorWorker100HzPoller( void* z ) {
           if( steerConfig.invertRowSense ){
             rowSenseTmp *= ( float ) -1;
           }
+          if( steerSetpoints.enabled ){
+            rowSenseIntegrator += steerSetpoints.speed * rowSenseTmp * steerConfig.rowSenseKi;
+            rowSenseIntegrator = constrain( rowSenseIntegrator, -steerConfig.rowSenseMaxDegrees, steerConfig.rowSenseMaxDegrees );
+          } else {
+            rowSenseIntegrator = 0;
+          }
+          rowSenseTmp += rowSenseIntegrator;
           rowSenseTmp = rowSenseFilter.step( rowSenseTmp );
           steerSetpoints.rowSenseAngle = rowSenseTmp;
           steerSetpoints.adjustedSteerAngle = steerSetpoints.actualSteerAngle + steerSetpoints.rowSenseAngle;
