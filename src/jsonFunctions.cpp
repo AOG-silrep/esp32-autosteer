@@ -205,6 +205,7 @@ json parseSteerConfigToJson( const SteerConfig& config ) {
   j["rowsense"]["countsPerDegree"] = config.rowSenseCountsPerDegree;
   j["rowsense"]["positionZero"] = config.rowSensePositionZero;
   j["rowsense"]["maxDegrees"] = config.rowSenseMaxDegrees;
+  j["rowsense"]["Kp"] = config.rowSenseKp;
   j["rowsense"]["Ki"] = config.rowSenseKi;
   j["rowsense"]["invert"] = config.invertRowSense;
 
@@ -292,6 +293,7 @@ void parseJsonToSteerConfig( json& j, SteerConfig& config ) {
       config.rowSenseCountsPerDegree = j.value( "/rowsense/countsPerDegree"_json_pointer, steerConfigDefaults.rowSenseCountsPerDegree );
       config.rowSensePositionZero = j.value( "/rowsense/positionZero"_json_pointer, steerConfigDefaults.rowSensePositionZero );
       config.rowSenseMaxDegrees = j.value( "/rowsense/maxDegrees"_json_pointer, steerConfigDefaults.rowSenseMaxDegrees );
+      config.rowSenseKp = j.value( "/rowsense/Kp"_json_pointer, steerConfigDefaults.rowSenseKp );
       config.rowSenseKi = j.value( "/rowsense/Ki"_json_pointer, steerConfigDefaults.rowSenseKi );
       config.invertRowSense = j.value( "/rowsense/invert"_json_pointer, steerConfigDefaults.invertRowSense );
 

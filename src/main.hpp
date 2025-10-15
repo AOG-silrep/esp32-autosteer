@@ -125,8 +125,9 @@ struct SteerConfig {
   bool enableRowSense = false;
   uint16_t rowSenseCountsPerDegree;
   uint16_t rowSensePositionZero;
-  uint16_t rowSenseMaxDegrees;
+  int16_t rowSenseMaxDegrees;
   float rowSenseKi;
+  float rowSenseKp;
   bool invertRowSense;
 
   enum class SpeedUnits : int8_t {
@@ -322,9 +323,9 @@ struct SteerSetpoints {
   time_t lastEngagedChangeMillis = 0;
   float receivedRoll = 0;
   double actualSteerAngle = 0;
-  double adjustedSteerAngle = 0;
   uint16_t rowSenseCounts = 0;
-  double rowSenseAngle; // row sense feedback for header->WAS offset
+  double rowSenseAngle; // row sense feedback from header for autosteer requested angle
+  bool rowSenseControl = false; // true if row sensors connected, within valid range, and row sense enabled
   double wheelAngleCounts = 0;
   double wheelAngleCurrentDisplacement = 0;
   double wheelAngleRaw = 0;

@@ -84,7 +84,6 @@ void initESPUI ( void ) {
     labelSteerMotorCurrent = ESPUI.addControl( ControlType::Label, "Steer motor current:", "Not loaded", ControlColor::Emerald, tab );
     labelSteerEngagedFaults = ESPUI.addControl( ControlType::Label, "Steering engaged with no power:", "Not loaded", ControlColor::Emerald, tab );
     labelSwitchStates = ESPUI.addControl( ControlType::Label, "Switch states:", "Not loaded", ControlColor::Emerald, tab );
-    labelRowSense = ESPUI.addControl( ControlType::Label, "Row sense guidance:", "0°", ControlColor::Turquoise, tab );
     ESPUI.addControl( ControlType::Button, "Diagnostics:", "Reset all to zero", ControlColor::Emerald, tab, []( Control * control, int id ) {
       if( id == B_UP ) {
         diagnostics.steerSupplyVoltageMax = machine.steerSupplyVoltage;
@@ -453,6 +452,7 @@ void initESPUI ( void ) {
   {
     uint16_t tab = ESPUI.addControl( ControlType::Tab, "Row Sense", "Row Sense" );
 
+    labelRowSense = ESPUI.addControl( ControlType::Label, "Row sense guidance:", "0°", ControlColor::Turquoise, tab );
     {
       ESPUI.addControl( ControlType::Switcher, "Enable Row Sense*", steerConfig.enableRowSense ? "1" : "0", ControlColor::Wetasphalt, tab,
       []( Control * control, int id ) {
@@ -500,12 +500,22 @@ void initESPUI ( void ) {
       }
 
       {
+        uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Kp", String( steerConfig.rowSenseKp ), ControlColor::Peterriver, tab,
+        []( Control * control, int id ) {
+          steerConfig.rowSenseKp = control->value.toFloat();
+        } );
+        ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Max, "Max", "50", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Step, "Step", "1.0", ControlColor::Peterriver, num );
+      }
+
+      {
         uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Ki", String( steerConfig.rowSenseKi ), ControlColor::Peterriver, tab,
         []( Control * control, int id ) {
           steerConfig.rowSenseKi = control->value.toFloat();
         } );
         ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
-        ESPUI.addControl( ControlType::Max, "Max", "500", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Max, "Max", "50", ControlColor::Peterriver, num );
         ESPUI.addControl( ControlType::Step, "Step", "1.0", ControlColor::Peterriver, num );
       }
     }

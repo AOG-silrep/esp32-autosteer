@@ -174,23 +174,18 @@ void sensorWorker100HzPoller( void* z ) {
           if( steerConfig.invertRowSense ){
             rowSenseTmp *= ( float ) -1;
           }
-          if( steerSetpoints.enabled ){
-            rowSenseIntegrator += steerSetpoints.speed * rowSenseTmp * steerConfig.rowSenseKi;
-            rowSenseIntegrator = constrain( rowSenseIntegrator, -steerConfig.rowSenseMaxDegrees, steerConfig.rowSenseMaxDegrees );
-          } else {
-            rowSenseIntegrator = 0;
-          }
-          rowSenseTmp += rowSenseIntegrator;
-          rowSenseTmp = rowSenseFilter.step( rowSenseTmp );
-          steerSetpoints.rowSenseAngle = rowSenseTmp;
-          steerSetpoints.adjustedSteerAngle = steerSetpoints.actualSteerAngle + steerSetpoints.rowSenseAngle;
+          rowSenseTmp  = rowSenseFilter.step( rowSenseTmp );
+          rowSenseIntegrator += rowSenseTmp * steerConfig.rowSenseKi;
+          rowSenseIntegrator = constrain( rowSenseIntegrator, -steerConfig.rowSenseMaxDegrees, steerConfig.rowSenseMaxDegrees ); // only limit Ki angle
+          steerSetpoints.rowSenseAngle = ( rowSenseTmp * steerConfig.rowSenseKp ) + rowSenseIntegrator; // Kp does not get limited
+          steerSetpoints.rowSenseControl = true; // requested steer angle now comes from row sense instead of software
         } else {
           steerSetpoints.rowSenseCounts = 0;
           steerSetpoints.rowSenseAngle = 0.00;
-          steerSetpoints.adjustedSteerAngle = steerSetpoints.actualSteerAngle;
+          steerSetpoints.rowSenseControl = false;
         }
       } else {
-        steerSetpoints.adjustedSteerAngle = steerSetpoints.actualSteerAngle;
+        steerSetpoints.rowSenseControl = false;
       }
     }
     

@@ -49,7 +49,7 @@ time_t lastHelloReceivedMillis;
 double pidOutput = 0;
 double pidOutputTmp = 0;
 AutoPID pid(
-        &( steerSetpoints.adjustedSteerAngle ),
+        &( steerSetpoints.actualSteerAngle ),
         &( steerSetpoints.requestedSteerAngle ),
         &( pidOutput ),
         -255, 255,
@@ -351,7 +351,7 @@ void autosteerWorker100Hz( void* z ) {
       data[4] = 8;    // length of data
 
       {
-        int16_t steerAngle = steerSetpoints.adjustedSteerAngle * 100 ;
+        int16_t steerAngle = steerSetpoints.actualSteerAngle * 100 ;
         data[5] = ( uint16_t )steerAngle;
         data[6] = ( uint16_t )steerAngle >> 8;
       }
@@ -466,7 +466,7 @@ void autosteerWorker100Hz( void* z ) {
       if( ++udpLoopCounter >= 25 ){ // send Hello every 2.5s
         udpLoopCounter = 0;
         uint8_t helloFromAutoSteer[] = { 128, 129, 126, 126, 5, 0, 0, 0, 0, 0, 71 };
-        int16_t steerAngle = ( steerSetpoints.adjustedSteerAngle * 100 );
+        int16_t steerAngle = ( steerSetpoints.actualSteerAngle * 100 );
         helloFromAutoSteer[5] = ( uint8_t )steerAngle;
         helloFromAutoSteer[6] = ( uint8_t )steerAngle >> 8;
 
@@ -699,7 +699,11 @@ void initAutosteer() {
               machine.autosteerSafetyLock = false;
             }
           }
-          steerSetpoints.requestedSteerAngle = (( double ) ((( int16_t )data[8]) | (( int8_t )data[9] << 8 ))) * 0.01; //horrible code to make negative doubles work
+          if( steerSetpoints.rowSenseControl ){
+            steerSetpoints.requestedSteerAngle = steerSetpoints.rowSenseAngle;
+          } else {
+            steerSetpoints.requestedSteerAngle = (( double ) ((( int16_t )data[8]) | (( int8_t )data[9] << 8 ))) * 0.01; //horrible code to make negative doubles work
+          }
 
           steerSetpoints.previousPacketReceived = steerSetpoints.lastPacketReceived;
           steerSetpoints.lastPacketReceived = millis();
