@@ -38,6 +38,7 @@ volatile time_t DeereWasOnTime;
 volatile time_t DeereWasOffTime;
 
 float rowSenseIntegrator; // integrator for Row Sense steering
+uint8_t rowSenseActive = 0; // 0:startup, 1:active, 2:disconnected or out of range
 
 // http://www.schwietering.com/jayduino/filtuino/index.php?characteristic=bu&passmode=lp&order=2&usesr=usesr&sr=100&frequencyLow=5&noteLow=&noteHigh=&pw=pw&calctype=float&run=Send
 //Low pass butterworth filter order=2 alpha1=0.05

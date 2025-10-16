@@ -38,6 +38,7 @@
 // global data
 ///////////////////////////////////////////////////////////////////////////
 
+AsyncUDP udpHardwareMessage;
 Diagnostics diagnostics;
 SteerConfig steerConfig, steerConfigDefaults;
 Initialisation initialisation;
@@ -91,20 +92,6 @@ void setup( void ) {
   Serial.println( WiFi.getMode() == WIFI_AP ? WiFi.softAPIP() : WiFi.localIP() );
 
   i2cMutex = xSemaphoreCreateMutex();
-
-  /*
-  * .begin loads and serves all files from PROGMEM directly.
-  * If you want to serve the files from LittleFS use ESPUI.beginLittleFS
-  * (.prepareFileSystem has to be run in an empty sketch before)
-  */
-
-  /*
-  * Optionally you can use HTTP BasicAuth. Keep in mind that this is NOT a
-  * SECURE way of limiting access.
-  * Anyone who is able to sniff traffic will be able to intercept your password
-  * since it is transmitted in cleartext. Just add a username and password,
-  * for example begin("ESPUI Control", "username", "password")
-  */
 
   if( ( SteerConfig::OutputType ) steerConfig.outputType >= SteerConfig::OutputType::Canbus13_19Controller ||
       ( SteerConfig::AnalogIn ) steerConfig.wheelAngleInput >= SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){

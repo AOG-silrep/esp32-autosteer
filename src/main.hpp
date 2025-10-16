@@ -60,6 +60,7 @@ extern TaskHandle_t canReceiverHandle;
 extern TaskHandle_t canSenderHandle;
 extern IPAddress ipDestination; //IP address to send UDP data to
 extern time_t lastHelloReceivedMillis;
+extern AsyncUDP udpHardwareMessage;
 
 struct Diagnostics {
   double steerSupplyVoltageMin;

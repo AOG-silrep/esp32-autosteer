@@ -32,7 +32,6 @@ SPIClass *hspi;
 CAN_device_t CAN_cfg;
 TaskHandle_t canReceiverHandle = NULL;
 TaskHandle_t canSenderHandle = NULL;
-AsyncUDP udpHardwareMessage;
 
 constexpr uint8_t rxQueueSize = 10;
 
