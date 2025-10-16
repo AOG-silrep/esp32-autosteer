@@ -59,6 +59,7 @@ constexpr time_t Timeout = 1000;
 uint32_t DRAM_ATTR disengageActivityMicros;
 uint32_t DRAM_ATTR onTime;
 uint32_t DRAM_ATTR offTime;
+bool DRAM_ATTR disengageState = LOW; // bool state = ( GPIO.in >> 23 ) & 0x1;
 
 bool previousAogEnabledState = false;
 bool AogToMachineEngagedMismatch = false; // do not update machine engaged state from AOG after switch change until round trip is completed
@@ -634,13 +635,12 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
 
 static void IRAM_ATTR disengageIsr( void* arg ) {
   // interrupt service routine for the steering wheel
-  static bool state = LOW; // bool state = ( GPIO.in >> 23 ) & 0x1;
-  if( state == LOW ){
+  if( disengageState == LOW ){
     onTime = esp_timer_get_time() - disengageActivityMicros;
   } else {
     offTime = esp_timer_get_time() - disengageActivityMicros;
   }
-  state = !state;
+  disengageState = !disengageState;
   disengageActivityMicros = esp_timer_get_time();
 }
 
