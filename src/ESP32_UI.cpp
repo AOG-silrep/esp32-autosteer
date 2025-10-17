@@ -492,10 +492,20 @@ void initESPUI ( void ) {
       {
         uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Max Degrees", String( steerConfig.rowSenseMaxDegrees ), ControlColor::Peterriver, tab,
         []( Control * control, int id ) {
-          steerConfig.rowSenseMaxDegrees = control->value.toFloat();
+          steerConfig.rowSenseMaxDegrees = control->value.toInt();
         } );
         ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
         ESPUI.addControl( ControlType::Max, "Max", "50", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Step, "Step", "1.0", ControlColor::Peterriver, num );
+      }
+
+      {
+        uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Min Degrees", String( steerConfig.rowSenseMinDegrees ), ControlColor::Peterriver, tab,
+        []( Control * control, int id ) {
+          steerConfig.rowSenseMinDegrees = control->value.toInt();
+        } );
+        ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Max, "Max", "10", ControlColor::Peterriver, num );
         ESPUI.addControl( ControlType::Step, "Step", "1.0", ControlColor::Peterriver, num );
       }
 

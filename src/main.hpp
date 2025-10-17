@@ -126,6 +126,7 @@ struct SteerConfig {
   bool enableRowSense = false;
   uint16_t rowSenseCountsPerDegree;
   uint16_t rowSensePositionZero;
+  int16_t rowSenseMinDegrees;
   int16_t rowSenseMaxDegrees;
   float rowSenseKi;
   float rowSenseKp;
