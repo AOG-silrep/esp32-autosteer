@@ -500,7 +500,7 @@ void initESPUI ( void ) {
       }
 
       {
-        uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Min Degrees", String( steerConfig.rowSenseMinDegrees ), ControlColor::Peterriver, tab,
+        uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Min Degrees (Deadband)", String( steerConfig.rowSenseMinDegrees ), ControlColor::Peterriver, tab,
         []( Control * control, int id ) {
           steerConfig.rowSenseMinDegrees = control->value.toInt();
         } );
