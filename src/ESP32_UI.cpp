@@ -490,16 +490,6 @@ void initESPUI ( void ) {
       }
 
       {
-        uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Max Degrees", String( steerConfig.rowSenseMaxDegrees ), ControlColor::Peterriver, tab,
-        []( Control * control, int id ) {
-          steerConfig.rowSenseMaxDegrees = control->value.toInt();
-        } );
-        ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
-        ESPUI.addControl( ControlType::Max, "Max", "50", ControlColor::Peterriver, num );
-        ESPUI.addControl( ControlType::Step, "Step", "1.0", ControlColor::Peterriver, num );
-      }
-
-      {
         uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Min Degrees (Deadband)", String( steerConfig.rowSenseMinDegrees ), ControlColor::Peterriver, tab,
         []( Control * control, int id ) {
           steerConfig.rowSenseMinDegrees = control->value.toInt();
@@ -516,13 +506,23 @@ void initESPUI ( void ) {
         } );
         ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
         ESPUI.addControl( ControlType::Max, "Max", "50", ControlColor::Peterriver, num );
-        ESPUI.addControl( ControlType::Step, "Step", "1.0", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Step, "Step", "0.01", ControlColor::Peterriver, num );
       }
 
       {
         uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Ki", String( steerConfig.rowSenseKi ), ControlColor::Peterriver, tab,
         []( Control * control, int id ) {
           steerConfig.rowSenseKi = control->value.toFloat();
+        } );
+        ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Max, "Max", "50", ControlColor::Peterriver, num );
+        ESPUI.addControl( ControlType::Step, "Step", "0.01", ControlColor::Peterriver, num );
+      }
+
+      {
+        uint16_t num = ESPUI.addControl( ControlType::Number, "Row Sense Ki Max Degrees", String( steerConfig.rowSenseKiMaxDegrees ), ControlColor::Peterriver, tab,
+        []( Control * control, int id ) {
+          steerConfig.rowSenseKiMaxDegrees = control->value.toInt();
         } );
         ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
         ESPUI.addControl( ControlType::Max, "Max", "50", ControlColor::Peterriver, num );

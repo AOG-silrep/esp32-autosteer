@@ -177,7 +177,7 @@ void sensorWorker100HzPoller( void* z ) {
           }
           rowSenseTmp  = rowSenseFilter.step( rowSenseTmp );
           rowSenseIntegrator += rowSenseTmp * steerConfig.rowSenseKi;
-          rowSenseIntegrator = constrain( rowSenseIntegrator, -steerConfig.rowSenseMaxDegrees, steerConfig.rowSenseMaxDegrees ); // only limit Ki angle
+          rowSenseIntegrator = constrain( rowSenseIntegrator, -steerConfig.rowSenseKiMaxDegrees, steerConfig.rowSenseKiMaxDegrees ); // only limit Ki angle
           float angle = ( rowSenseTmp * steerConfig.rowSenseKp ) + rowSenseIntegrator; // Kp does not get limited
           if( angle < steerConfig.rowSenseMinDegrees && angle > -steerConfig.rowSenseMinDegrees ){
             steerSetpoints.rowSenseAngle = 0.00;
