@@ -812,38 +812,22 @@ void initESPUI ( void ) {
     Serial.print( downloadFilename );
     Serial.println( " for download" );
 
-    char ibuffer[64];
-    File f1 = LittleFS.open( "/autosteer.json", "r" );    //open source file to read
-    if ( !f1 ){
-      Serial.println( "/autosteer.json not available for copying" );
+    // Serve the existing LittleFS file directly but set the download filename
+    // by adding a Content-Disposition header on the response.
+    if ( !LittleFS.exists( "/autosteer.json" ) ){
+      Serial.println( "/autosteer.json not available for download" );
+      request->send( 404 );
       return;
     }
 
-    File f2 = LittleFS.open( downloadFilename, "w" );    //open destination file to write
-    if ( !f2 ){
-      Serial.print( downloadFilename );
-      Serial.println( " could not be created" );
-      return;
+    String fname = String( downloadFilename );
+    if ( fname.length() && fname.charAt( 0 ) == '/' ) {
+      fname = fname.substring( 1 );
     }
-    
-    uint8_t blocks = 0;
-    Serial.print( "Copied " );
-    while ( f1.available() > 0 ){
-      byte i = f1.readBytes( ibuffer, 64 ); // i = number of bytes placed in buffer from file f1
-      f2.write(( uint8_t* )ibuffer, i );    // write i bytes from buffer to file f2
-      blocks += 1;
-      Serial.print( blocks );
-      Serial.print( " " );
-    }
-    Serial.println( "blocks" );
-    
-    f2.close();
-    f1.close();
-    Serial.println( "File creation successful, downloading..." );
-    delay( 5 );
-    request->send( LittleFS, downloadFilename, "application/json", true );
-    delay( 5 );
-    LittleFS.remove( downloadFilename );
+
+    AsyncWebServerResponse * response = request->beginResponse( LittleFS, "/autosteer.json", "application/json" );
+    response->addHeader( "Content-Disposition", String( "attachment; filename=\"" ) + fname + String( "\"" ) );
+    request->send( response );
   } );
   
   // upload a file to /upload-config
