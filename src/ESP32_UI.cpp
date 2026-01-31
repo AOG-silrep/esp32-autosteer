@@ -116,10 +116,18 @@ void initESPUI ( void ) {
     labelStatusAdc = ESPUI.addControl( ControlType::Label, "WAS:", "No WAS configured", ControlColor::Turquoise, tab );
     labelStatusCanESP32 = ESPUI.addControl( ControlType::Label, "ESP32 CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
     labelStatusCanMCP2515 = ESPUI.addControl( ControlType::Label, "MCP2515 CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
+  #ifdef CUSTOM_PROG_VERSION
+    String buildDate = CUSTOM_PROG_VERSION;
+    buildDate += String("\n");
+    buildDate += String(__DATE__);
+    buildDate += String(" ");
+    buildDate += String(__TIME__);
+  #else
     String buildDate = String(__DATE__);
     buildDate += String(" ");
     buildDate += String(__TIME__);
-    labelBuildDate = ESPUI.addControl( ControlType::Label, "Build date :", buildDate, ControlColor::Turquoise, tab );
+  #endif
+    labelBuildDate = ESPUI.addControl( ControlType::Label, "Build:", buildDate, ControlColor::Turquoise, tab );
   }
 
   // Network Tab
