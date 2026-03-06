@@ -29,7 +29,6 @@
 #include <ESPmDNS.h>
 #include <WiFi.h>
 
-#include <DNSServer.h>
 #include <ESPUI.h>
 
 #include <AsyncElegantOTA.h>
@@ -49,13 +48,11 @@ Safety safety;
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 SemaphoreHandle_t i2cMutex;
 
-const byte DNS_PORT = 53;
 IPAddress wifiIP( 192, 168, 1, 1 );
 
 ///////////////////////////////////////////////////////////////////////////
 // external Libraries
 ///////////////////////////////////////////////////////////////////////////
-DNSServer dnsServer;
 
 ///////////////////////////////////////////////////////////////////////////
 // Application
@@ -81,8 +78,6 @@ void setup( void ) {
   digitalWrite( steerConfig.apModePin, LOW );
 
   initWiFi();
-
-  dnsServer.start( DNS_PORT, "*", apIP );
 
   Serial.println( "\n\nWiFi parameters:" );
   Serial.print( "Mode: " );
@@ -127,6 +122,5 @@ void setup( void ) {
 }
 
 void loop( void ) {
-  dnsServer.processNextRequest();
   vTaskDelay( 100 );
 }
