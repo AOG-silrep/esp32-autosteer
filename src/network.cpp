@@ -99,10 +99,13 @@ void initWiFi( void ){
   } while( timeout && WiFi.status() != WL_CONNECTED );
   // not connected -> create hotspot
   if( WiFi.status() != WL_CONNECTED ) {
-      WiFi.disconnect( true );
+      if( WiFi.disconnect( true )){
+        Serial.println( "Wifi reset successful" );
+      } else Serial.println( "Wifi reset failed" );
 
       digitalWrite( steerConfig.apModePin, LOW );
 
+      WiFi.begin(); // WiFi needs to be running to retrieve the MAC address
       apName = String( "Steer module " );
       apName += WiFi.macAddress();
       apName.replace( ":", "" );
@@ -110,15 +113,19 @@ void initWiFi( void ){
       Serial.print( "\n\nCreating hotspot \"" );
       Serial.print( apName.c_str() );
       Serial.println( "\"" );
-      WiFi.mode( WIFI_MODE_APSTA );
-      delay( 25 );
-      WiFi.softAP( apName.c_str() );
+      if( WiFi.mode( WIFI_MODE_APSTA )){
+        delay( 25 );
+        if( WiFi.softAPConfig( softApIP, softApIP, IPAddress( 255, 255, 255, 0 ))){
+          delay( 25 );
+          WiFi.softAP( apName.c_str() );
+        } else Serial.println( "Wifi softAPConfig failed" );
+      } else Serial.println( "Wifi APSTA mode failed" );
+
       WiFi.begin( steerConfig.ssid, steerConfig.password );
       while( !SYSTEM_EVENT_AP_START ){ // wait until AP has started
           delay( 100 );
           Serial.print( "." );
       }
-      WiFi.softAPConfig( softApIP, softApIP, IPAddress( 255, 255, 255, 0 ));
       delay( 25 );
     }
 }

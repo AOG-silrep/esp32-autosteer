@@ -50,7 +50,7 @@ portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 SemaphoreHandle_t i2cMutex;
 
 const byte DNS_PORT = 53;
-IPAddress apIP( 192, 168, 1, 1 );
+IPAddress wifiIP( 192, 168, 1, 1 );
 
 ///////////////////////////////////////////////////////////////////////////
 // external Libraries
@@ -81,15 +81,20 @@ void setup( void ) {
   digitalWrite( steerConfig.apModePin, LOW );
 
   initWiFi();
-  apIP = WiFi.localIP();
 
   dnsServer.start( DNS_PORT, "*", apIP );
 
   Serial.println( "\n\nWiFi parameters:" );
   Serial.print( "Mode: " );
-  Serial.println( WiFi.getMode() == WIFI_AP ? "Station" : "Client" );
+  if( WiFi.getMode() == WIFI_AP_STA ){
+    Serial.println( "access point" );
+    wifiIP = WiFi.softAPIP();
+  } else {
+    Serial.println( "client" );
+    wifiIP = WiFi.localIP();
+  }
   Serial.print( "IP address: " );
-  Serial.println( WiFi.getMode() == WIFI_AP ? WiFi.softAPIP() : WiFi.localIP() );
+  Serial.println( wifiIP );
 
   i2cMutex = xSemaphoreCreateMutex();
 
