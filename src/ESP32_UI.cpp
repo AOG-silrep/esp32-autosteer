@@ -705,7 +705,8 @@ void initESPUI ( void ) {
       ESPUI.addControl( ControlType::Option, "MPH", "0", ControlColor::Alizarin, sel );
       ESPUI.addControl( ControlType::Option, "KPH", "1", ControlColor::Alizarin, sel );
     }
-    {
+    if( steerConfig.canBusEnabled == false ) {
+      {
       uint16_t sel = ESPUI.addControl( ControlType::Select, "Disengage Switch Type*", String( ( int )steerConfig.disengageSwitchType ), ControlColor::Wetasphalt, tab,
       []( Control * control, int id ) {
         steerConfig.disengageSwitchType = ( SteerConfig::DisengageSwitchType )control->value.toInt();
@@ -786,7 +787,8 @@ void initESPUI ( void ) {
         ESPUI.addControl( ControlType::Step, "Step", "10", ControlColor::Peterriver, num );
       }
       break;
-     }
+      }
+    }
   }
 
   char autosteerDownloadHTML [100];
