@@ -56,71 +56,6 @@ constexpr uint32_t DeereHydraulicRemotes = 0x18FFFB22;
 
 bool readyToDisengage;
 
-void showCanbusStateOnAOG( uint8_t state ){
-  switch( state ){
-    case 0x00: {
-      uint8_t data[30] = {0x80, 0x81, 0x7F, 0xDD, 24, 3, 1, 0x52, 0x65, 0x6C, 0x65, 0x61, 0x73, 0x65, 0x20, 0x73, 0x74, 0x65, 0x65, 0x72, 0x69, 0x6E, 0x67, 0x77, 0x68, 0x65, 0x65, 0x6C, 0x00}; //Release steeringwheel
-      int CRCtoAOG = 0;
-      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
-        CRCtoAOG = ( CRCtoAOG + data[ i ] );
-      }
-      data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
-    }
-    break;
-    case 0x20: {
-      uint8_t data[26] = {0x80, 0x81, 0x7F, 0xDD, 20, 3, 1, 0x54, 0x75, 0x72, 0x6E, 0x20, 0x73, 0x74, 0x65, 0x65, 0x72, 0x69, 0x6E, 0x67, 0x77, 0x68, 0x65, 0x65, 0x6C, 0x00}; //Turn steeringwheel
-      int CRCtoAOG = 0;
-      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
-        CRCtoAOG = ( CRCtoAOG + data[ i ] );
-      }
-      data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
-    }
-    break;
-    case 0x50: {
-      uint8_t data[34] = {0x80, 0x81, 0x7F, 0xDD, 28, 3, 1, 0x4E, 0x6F, 0x20, 0x43, 0x61, 0x6E, 0x62, 0x75, 0x73, 0x20, 0x6F, 0x75, 0x74, 0x70, 0x75, 0x74, 0x20, 0x66, 0x72, 0x6F, 0x6D, 0x20, 0x41, 0x4F, 0x47, 0x20, 0x00}; //No Canbus output from AOG
-      int CRCtoAOG = 0;
-      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
-        CRCtoAOG = ( CRCtoAOG + data[ i ] );
-      }
-      data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
-    }
-    break;
-    case 0x60: {
-      uint8_t data[26] = {0x80, 0x81, 0x7F, 0xDD, 20, 3, 1, 0x41, 0x75, 0x74, 0x6F, 0x73, 0x74, 0x65, 0x65, 0x72, 0x20, 0x64, 0x69, 0x73, 0x61, 0x62, 0x6C, 0x65, 0x64, 0x00}; //Autosteer disabled
-      int CRCtoAOG = 0;
-      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
-        CRCtoAOG = ( CRCtoAOG + data[ i ] );
-      }
-      data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
-    }
-    break;
-    case 0x61: {
-      uint8_t data[27] = {0x80, 0x81, 0x7F, 0xDD, 21, 3, 1, 0x54, 0x72, 0x61, 0x63, 0x74, 0x6F, 0x72, 0x20, 0x6E, 0x6F, 0x74, 0x20, 0x64, 0x72, 0x69, 0x76, 0x69, 0x6E, 0x67, 0x00}; //Tractor not driving
-      int CRCtoAOG = 0;
-      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
-        CRCtoAOG = ( CRCtoAOG + data[ i ] );
-      }
-      data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
-    }
-    break;
-    default: {
-      uint8_t data[21] = {0x80, 0x81, 0x7F, 0xDD, 16, 3, 1, 0x55, 0x6E, 0x6B, 0x6E, 0x6F, 0x77, 0x6E, 0x20, 0x65, 0x72, 0x72, 0x6F, 0x72, 0x00}; //Unknown error
-      int CRCtoAOG = 0;
-      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
-        CRCtoAOG = ( CRCtoAOG + data[ i ] );
-      }
-      data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
-    }
-    break;
-  }
-}
-
 void canFendtSteeringReceiver100Hz( void* z ) {
   constexpr TickType_t xFrequency = 10;
   TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -263,7 +198,7 @@ void canReceiver10Hz( void* z ) {
               machine.lastDisengageMillis = millis();
             } else if ( machine.canbusSteeringState == 0x20 ) { // stagnant
               if( readyToDisengage == true ){
-                showCanbusStateOnAOG( 0x61 );
+                showHardwareStateOnAOG( 0x61 );
               }
               machine.steeringEnabled = false;
               readyToDisengage = false;
@@ -286,7 +221,7 @@ void canReceiver10Hz( void* z ) {
                   if( machine.canbusSteeringState == 0x10 ){ //only try to engage when machine is ready, to avoid race conditions
                     machine.steeringEnabled = true;
                   } else {
-                    showCanbusStateOnAOG( machine.canbusSteeringState );
+                    showHardwareStateOnAOG( machine.canbusSteeringState );
                   }
                 } else if(( canFrame.data.u8[0] ) == 15 && ( canFrame.data.u8[1] ) == 96 && ( canFrame.data.u8[2] ) == 0 ){
                   machine.steeringEnabled = false;
@@ -607,11 +542,11 @@ void canComplementSwitchWorker10Hz( void* z ) {
     if( previousState != state ){
       if( state == steerConfig.steerswitchActiveLow ){
         if(( machine.lastCanbusSteeringMillis + 500 ) < millis() ){ // Canbus steering timeout
-          showCanbusStateOnAOG( 0x60 );
+          showHardwareStateOnAOG( 0x60 );
         } else if( machine.canbusSteeringState == 0x10 ){ // only try to engage when machine is ready, to avoid race conditions
           machine.steeringEnabled = true;
         } else {
-          showCanbusStateOnAOG( machine.canbusSteeringState );
+          showHardwareStateOnAOG( machine.canbusSteeringState );
         }
       }
       previousState = state;

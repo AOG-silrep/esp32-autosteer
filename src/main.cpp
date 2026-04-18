@@ -37,7 +37,6 @@
 // global data
 ///////////////////////////////////////////////////////////////////////////
 
-AsyncUDP udpHardwareMessage;
 Diagnostics diagnostics;
 SteerConfig steerConfig, steerConfigDefaults;
 Initialisation initialisation;
