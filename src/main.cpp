@@ -38,6 +38,7 @@
 ///////////////////////////////////////////////////////////////////////////
 
 Diagnostics diagnostics;
+DiagnosticsDisplay diagnosticsDisplay;
 SteerConfig steerConfig, steerConfigDefaults;
 Initialisation initialisation;
 SteerCanData steerCanData = {0};
@@ -48,6 +49,7 @@ portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 SemaphoreHandle_t i2cMutex;
 
 IPAddress wifiIP( 192, 168, 1, 1 );
+
 
 ///////////////////////////////////////////////////////////////////////////
 // external Libraries
@@ -97,15 +99,7 @@ void setup( void ) {
     machine.canbusSteeringActive = true;
   }
   initESPUI();
-
-  {
-  String str;
-  str.reserve( 30 );
-  str = "Number of faults: ";
-  str += ( uint8_t ) diagnostics.steerEnabledWithNoPower;
-  str += "\nFault active since startup: No";
-  ESPUI.updateLabel( labelSteerEngagedFaults, str );
-  }
+  initWebServerFunctions();
 
   AsyncElegantOTA.begin( ESPUI.WebServer() );
 

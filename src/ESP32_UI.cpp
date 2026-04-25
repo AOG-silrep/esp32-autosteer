@@ -9,11 +9,6 @@
 int8_t ditherAmount = 0;
 uint16_t labelLoad;
 uint16_t labelWheelAngle;
-uint16_t labelSafetyDisableAutosteer;
-uint16_t labelSupplyVoltage;
-uint16_t labelSteerMotorCurrent;
-uint16_t labelSteerEngagedFaults;
-uint16_t labelSwitchStates;
 uint16_t labelRowSense;
 uint16_t buttonReset;
 
@@ -21,7 +16,6 @@ uint16_t labelWheelAngleDisplacement;
 
 uint16_t labelAgOpenGpsAddress;
 uint16_t labelStatusOutput;
-uint16_t labelStatusAdc;
 uint16_t labelStatusCanESP32;
 uint16_t labelStatusCanMCP2515;
 uint16_t labelBuildDate;
@@ -73,62 +67,6 @@ void initESPUI ( void ) {
   } );
 
   uint16_t tabConfigurations;
-
-  // Diagnostics Tab
-  {
-    uint16_t tab = ESPUI.addControl( ControlType::Tab, "Diagnostics", "Diagnostics" );
-
-    labelAgOpenGpsAddress = ESPUI.addControl( ControlType::Label, "AgOpenGPS communication", "N/A", ControlColor::Turquoise, tab );
-    labelSafetyDisableAutosteer = ESPUI.addControl( ControlType::Label, "Safety disable autosteer:", "Not started", ControlColor::Emerald, tab );
-    labelSupplyVoltage = ESPUI.addControl( ControlType::Label, "Steer valve supply voltage:", "Not loaded", ControlColor::Emerald, tab );
-    labelSteerMotorCurrent = ESPUI.addControl( ControlType::Label, "Steer motor current:", "Not loaded", ControlColor::Emerald, tab );
-    labelSteerEngagedFaults = ESPUI.addControl( ControlType::Label, "Steering engaged with no power:", "Not loaded", ControlColor::Emerald, tab );
-    labelSwitchStates = ESPUI.addControl( ControlType::Label, "Switch states:", "Not loaded", ControlColor::Emerald, tab );
-    ESPUI.addControl( ControlType::Button, "Diagnostics:", "Reset all to zero", ControlColor::Emerald, tab, []( Control * control, int id ) {
-      if( id == B_UP ) {
-        diagnostics.steerSupplyVoltageMax = machine.steerSupplyVoltage;
-        diagnostics.steerSupplyVoltageMin = machine.steerSupplyVoltage;
-        diagnostics.steerEnabledWithNoPower = 0;
-        diagnostics.fuse1Shorted = 0;
-        diagnostics.fuse2Shorted = 0;
-        diagnostics.UDPTimeout = 0;
-        saveDiagnostics();
-
-        Control* labelSteerEngagedFaultsHandle = ESPUI.getControl( labelSteerEngagedFaults );
-        String str;
-        str.reserve( 30 );
-        str = "Number of faults: ";
-        str += ( int8_t ) diagnostics.steerEnabledWithNoPower;
-        str += "\nFault active since startup: No";
-        labelSteerEngagedFaultsHandle->value = str;
-        labelSteerEngagedFaultsHandle->color = ControlColor::Emerald;
-        ESPUI.updateControl( labelSteerEngagedFaultsHandle );
-        
-      }
-    } );
-  }
- 
-  // Status Tab
-  {
-    uint16_t tab = ESPUI.addControl( ControlType::Tab, "Status", "Status" );
-
-    labelStatusOutput = ESPUI.addControl( ControlType::Label, "Output:", "No Output configured", ControlColor::Turquoise, tab );
-    labelStatusAdc = ESPUI.addControl( ControlType::Label, "WAS:", "No WAS configured", ControlColor::Turquoise, tab );
-    labelStatusCanESP32 = ESPUI.addControl( ControlType::Label, "ESP32 CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
-    labelStatusCanMCP2515 = ESPUI.addControl( ControlType::Label, "MCP2515 CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
-  #ifdef CUSTOM_PROG_VERSION
-    String buildDate = CUSTOM_PROG_VERSION;
-    buildDate += String("\n");
-    buildDate += String(__DATE__);
-    buildDate += String(" ");
-    buildDate += String(__TIME__);
-  #else
-    String buildDate = String(__DATE__);
-    buildDate += String(" ");
-    buildDate += String(__TIME__);
-  #endif
-    labelBuildDate = ESPUI.addControl( ControlType::Label, "Build:", buildDate, ControlColor::Turquoise, tab );
-  }
 
   // Network Tab
   {
@@ -183,13 +121,18 @@ void initESPUI ( void ) {
       ESPUI.addControl( ControlType::Option, "500kB/s", "500", ControlColor::Alizarin, sel );
     }
 
-    {
-      uint16_t sel = ESPUI.addControl( ControlType::Select, "HMS version*", String( ( int )steerConfig.canbusHmsVersion ), ControlColor::Peterriver, tab,
-      []( Control * control, int id ) {
-        steerConfig.canbusHmsVersion = ( SteerConfig::HmsVersion )control->value.toInt();
-      } );
-      ESPUI.addControl( ControlType::Option, "None", "0", ControlColor::Alizarin, sel );
-      ESPUI.addControl( ControlType::Option, "Deere 0x18FFFA21", "1", ControlColor::Alizarin, sel );
+    if( steerConfig.canBusEnabled ){
+      labelStatusCanESP32 = ESPUI.addControl( ControlType::Label, "ESP32 CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
+      labelStatusCanMCP2515 = ESPUI.addControl( ControlType::Label, "MCP2515 CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
+
+      {
+        uint16_t sel = ESPUI.addControl( ControlType::Select, "HMS version*", String( ( int )steerConfig.canbusHmsVersion ), ControlColor::Peterriver, tab,
+        []( Control * control, int id ) {
+          steerConfig.canbusHmsVersion = ( SteerConfig::HmsVersion )control->value.toInt();
+        } );
+        ESPUI.addControl( ControlType::Option, "None", "0", ControlColor::Alizarin, sel );
+        ESPUI.addControl( ControlType::Option, "Deere 0x18FFFA21", "1", ControlColor::Alizarin, sel );
+      }
     }
   }
 
@@ -543,6 +486,7 @@ void initESPUI ( void ) {
   {
     uint16_t tab = ESPUI.addControl( ControlType::Tab, "Steering", "Steering" );
 
+    labelStatusOutput = ESPUI.addControl( ControlType::Label, "Output:", "No Output configured", ControlColor::Turquoise, tab );
     {
       uint16_t sel = ESPUI.addControl( ControlType::Select, "Output Type*", String( ( int )steerConfig.outputType ), ControlColor::Wetasphalt, tab,
       []( Control * control, int id ) {
@@ -799,6 +743,19 @@ void initESPUI ( void ) {
   {
     uint16_t tab = ESPUI.addControl( ControlType::Tab, "Configurations", "Configurations" );
 
+    #ifdef CUSTOM_PROG_VERSION
+      String buildDate = CUSTOM_PROG_VERSION;
+      buildDate += String("\n");
+      buildDate += String(__DATE__);
+      buildDate += String(" ");
+      buildDate += String(__TIME__);
+    #else
+      String buildDate = String(__DATE__);
+      buildDate += String(" ");
+      buildDate += String(__TIME__);
+    #endif
+      labelBuildDate = ESPUI.addControl( ControlType::Label, "Build:", buildDate, ControlColor::Turquoise, tab );
+    
     ESPUI.addControl( ControlType::Label, "OTA Update:", "<a href='/update'>Update</a>", ControlColor::Carrot, tab );
 
     ESPUI.addControl( ControlType::Label, "Download the config:", autosteerDownloadHTML, ControlColor::Carrot, tab );
