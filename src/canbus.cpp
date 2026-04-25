@@ -192,7 +192,11 @@ void canReceiver10Hz( void* z ) {
               readyToDisengage = true;
               machine.disengageInput = false;
             } else if( machine.canbusSteeringState == 0x00 ) { // handwheel activity disengages
+              if( steerSetpoints.enabled == true ) {
+                machine.autosteerSafetyLock = true;
+              }
               machine.steeringEnabled = false;
+              machine.disengagedBySteeringWheel = true;
               readyToDisengage = false;
               machine.disengageInput = true;
               machine.lastDisengageMillis = millis();
@@ -208,6 +212,8 @@ void canReceiver10Hz( void* z ) {
               readyToDisengage = false;
               machine.disengageInput = true;
               machine.lastDisengageMillis = millis();
+            } else {
+              machine.disengagedBySteeringWheel = false;
             }
           }
           break;
@@ -219,7 +225,13 @@ void canReceiver10Hz( void* z ) {
               case VMCAutosteer:{ //0x18EF1C00
                 if(( canFrame.data.u8[0] ) == 15 && ( canFrame.data.u8[1] ) == 96 && ( canFrame.data.u8[2] ) == 1 ){
                   if( machine.canbusSteeringState == 0x10 ){ //only try to engage when machine is ready, to avoid race conditions
-                    machine.steeringEnabled = true;
+                    if( steerSetpoints.speed > steerConfig.maxAutosteerSpeed ) {
+                      machine.steeringEnabled = false;
+                      safety.autosteerDisabledByMaxEngageSpeed = true;
+                    } else {
+                      machine.steeringEnabled = true;
+                      AogToMachineEngagedMismatch = true;
+                    }
                   } else {
                     showHardwareStateOnAOG( machine.canbusSteeringState );
                   }
@@ -544,7 +556,13 @@ void canComplementSwitchWorker10Hz( void* z ) {
         if(( machine.lastCanbusSteeringMillis + 500 ) < millis() ){ // Canbus steering timeout
           showHardwareStateOnAOG( 0x60 );
         } else if( machine.canbusSteeringState == 0x10 ){ // only try to engage when machine is ready, to avoid race conditions
-          machine.steeringEnabled = true;
+          if( steerSetpoints.speed > steerConfig.maxAutosteerSpeed ) {
+            machine.steeringEnabled = false;
+            safety.autosteerDisabledByMaxEngageSpeed = true;
+          } else {
+            machine.steeringEnabled = true;
+            AogToMachineEngagedMismatch = true;
+          }
         } else {
           showHardwareStateOnAOG( machine.canbusSteeringState );
         }
