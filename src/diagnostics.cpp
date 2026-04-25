@@ -12,10 +12,9 @@ void diagnosticWorker1Hz( void* z ) {
   for( ;; ) {
 
     {
-      Control* labelSafetyDisableAutosteerHandle = ESPUI.getControl( labelSafetyDisableAutosteer );
       String str;
       str.reserve( 30 );
-      str = "Speed: ";
+      str = "\nSpeed: ";
       str += ( float )steerSetpoints.speed;
       if( ( SteerConfig::SpeedUnits )steerConfig.speedUnits == SteerConfig::SpeedUnits::MilesPerHour ) {
         str += " MPH";
@@ -38,19 +37,13 @@ void diagnosticWorker1Hz( void* z ) {
         str += " seconds ago";
 
       } else str += "No";
-      if( safety.AOGEnableAutosteerTimeout || 
-          safety.autosteerDisabledByMaxEngageSpeed || 
-          machine.disengagedBySteeringWheel ){
-        labelSafetyDisableAutosteerHandle->color = ControlColor::Alizarin;
-      } else {
-        labelSafetyDisableAutosteerHandle->color = ControlColor::Emerald;
-      }
-      ESPUI.updateLabel( labelSafetyDisableAutosteer, str );
+      diagnosticsDisplay.safetyDisableAutosteer = str;
     }
     if( machine.canbusSteeringActive == false ){ // voltage monitoring during legacy steering only
       String str;
       str.reserve( 30 );
-      str = ( uint16_t ) machine.steerSupplyVoltage ;
+      str = "\n";
+      str += ( uint16_t ) machine.steerSupplyVoltage ;
       str += " counts; ";
       str += ( double ) ( ( double ) ( machine.steerSupplyVoltage * 4.54 ) / 913 ); //divide by 913 for ESP32; 10k/2.2k = 4.54
       str += " volts\n";
@@ -58,16 +51,16 @@ void diagnosticWorker1Hz( void* z ) {
       str += " volts min while steering\n";
       str += ( double ) ( ( double ) ( diagnostics.steerSupplyVoltageMax * 4.54 ) / 913 );
       str += " volts max while steering";
-      ESPUI.updateLabel( labelSupplyVoltage, str );
+      diagnosticsDisplay.supplyVoltage = str;
     }
     {
       String str;
       str.reserve( 30 );
-      str = "Current: ";
+      str = "\nCurrent: ";
       str += ( uint16_t ) machine.steerMotorCurrent;
       str += "\nOverlimit: ";
       str += ( machine.steerMotorCurrent > steerConfig.maxSteerCurrent ) ? "Yes" : "No";
-      ESPUI.updateLabel( labelSteerMotorCurrent, str );
+      diagnosticsDisplay.steerMotorCurrent = str;
     }
     {
       String str;
@@ -138,7 +131,7 @@ void diagnosticWorker1Hz( void* z ) {
       String str;
       str.reserve( 30 );
       if( steerConfig.outputType == SteerConfig::OutputType::Canbus13_19Controller ){
-        str = "Canbus steer state: ";
+        str = "\nCanbus steer state: ";
         time_t elapsed = millis() - machine.lastCanbusSteeringMillis;
         if( digitalRead( ( uint8_t )steerConfig.gpioSteerswitch ) == steerConfig.steerswitchActiveLow ){
           str += "override switch pressed";
@@ -188,9 +181,9 @@ void diagnosticWorker1Hz( void* z ) {
         }
       } else {
         if( steerConfig.steerSwitchIsMomentary == true ){
-          str = "Momentary steer switch: ";
+          str = "\nMomentary steer switch: ";
         } else {
-          str = "Maintained steer switch: ";
+          str = "\nMaintained steer switch: ";
         }
         str += ( bool )( digitalRead( steerConfig.gpioSteerswitch ) == steerConfig.steerswitchActiveLow ) ? "On " : "Off " ;
         time_t elapsed = millis() - machine.lastAutosteerMillis;
@@ -243,7 +236,7 @@ void diagnosticWorker1Hz( void* z ) {
           str += " seconds ago";
         }
       }
-      ESPUI.updateLabel( labelSwitchStates, str );
+      diagnosticsDisplay.switchStates = str;
     }
     {
       switch( steerConfig.outputType ) {
@@ -380,7 +373,7 @@ void diagnosticWorker1Hz( void* z ) {
     time_t seconds = ( millis() - lastHelloReceivedMillis ) / 1000;
     String str;
     str.reserve( 30 );
-    str = "IP Address ";
+    str = "\nIP Address ";
     str += ipDestination.toString();
     str += " ";
     str += ( String )seconds;
@@ -394,13 +387,7 @@ void diagnosticWorker1Hz( void* z ) {
       str += ( String )( steerSetpoints.lastPacketReceived - steerSetpoints.previousPacketReceived );
       str += " millis apart";
     }
-    labelAgOpenGpsAddressHandle->value = str;
-    if( seconds > 5 ){
-      labelAgOpenGpsAddressHandle->color = ControlColor::Alizarin;
-    } else {
-      labelAgOpenGpsAddressHandle->color = ControlColor::Turquoise;
-    }
-    ESPUI.updateControl( labelAgOpenGpsAddressHandle );
+    diagnosticsDisplay.agOpenGpsAddress = str;
     
     Control* labelRowSenseHandle = ESPUI.getControl( labelRowSense );
     if( steerConfig.enableRowSense ){
@@ -428,5 +415,13 @@ void diagnosticWorker1Hz( void* z ) {
 }
 
 void initDiagnostics() {
+
+  String str;
+  str.reserve( 30 );
+  str = "\nNumber of faults: ";
+  str += ( int8_t ) diagnostics.steerEnabledWithNoPower;
+  str += "\nFault active since startup: No";
+  diagnosticsDisplay.steerEngagedFaults = str;
+
   xTaskCreate( diagnosticWorker1Hz, "diagnosticWorker", 3096, NULL, 3, NULL );
 }

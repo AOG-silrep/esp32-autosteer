@@ -101,14 +101,12 @@ void autosteerWorker100Hz( void* z ) {
         if( dtcAutosteerPrevious == false && machine.steerSupplyVoltage < 2172 ){  // 10.8 volts
           diagnostics.steerEnabledWithNoPower += 1;
 
-          Control* labelSteerEngagedFaultsHandle = ESPUI.getControl( labelSteerEngagedFaults );
           String str;
           str.reserve( 30 );
-          str = "Number of faults: ";
+          str = "\nNumber of faults: ";
           str += ( int8_t ) diagnostics.steerEnabledWithNoPower;
           str += "\nFault active since startup: Yes";
-          labelSteerEngagedFaultsHandle->color = ControlColor::Alizarin;
-          ESPUI.updateLabel( labelSteerEngagedFaults, str );
+          diagnosticsDisplay.steerEngagedFaults = str;
           saveDiagnostics();
         }
       }
@@ -855,10 +853,10 @@ void initAutosteer() {
   if( machine.canbusSteeringActive == true ){
     String str;
     str.reserve( 30 );
-    str = "N/A in CANbus steering";
+    str = "\nN/A in CANbus steering";
     
-    ESPUI.updateLabel( labelSteerEngagedFaults, str );
-    ESPUI.updateLabel( labelSupplyVoltage, str );
+    diagnosticsDisplay.steerEngagedFaults = str;
+    diagnosticsDisplay.supplyVoltage = str;
   }
 
   pinMode( steerConfig.gpioWorkswitch, INPUT_PULLUP );

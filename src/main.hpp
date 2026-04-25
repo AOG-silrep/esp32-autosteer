@@ -71,6 +71,16 @@ struct Diagnostics {
   uint8_t UDPTimeout; // how many times AgOpenGPS steering UDP timed out
 };
 extern Diagnostics diagnostics;
+
+struct DiagnosticsDisplay {
+  String agOpenGpsAddress;
+  String safetyDisableAutosteer;
+  String supplyVoltage;
+  String steerMotorCurrent;
+  String steerEngagedFaults;
+  String switchStates;
+};
+extern DiagnosticsDisplay diagnosticsDisplay;
 ///////////////////////////////////////////////////////////////////////////
 // Configuration
 ///////////////////////////////////////////////////////////////////////////
@@ -384,9 +394,10 @@ class TCritSect {
 ///////////////////////////////////////////////////////////////////////////
 // Helper Functions
 ///////////////////////////////////////////////////////////////////////////
-extern void setResetButtonToRed();
+extern char downloadFilename[50];
 
 extern void initESPUI();
+extern void initWebServerFunctions();
 extern void initIdleStats();
 extern void initSensors();
 extern void initCan();

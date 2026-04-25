@@ -9,11 +9,6 @@
 int8_t ditherAmount = 0;
 uint16_t labelLoad;
 uint16_t labelWheelAngle;
-uint16_t labelSafetyDisableAutosteer;
-uint16_t labelSupplyVoltage;
-uint16_t labelSteerMotorCurrent;
-uint16_t labelSteerEngagedFaults;
-uint16_t labelSwitchStates;
 uint16_t labelRowSense;
 uint16_t buttonReset;
 
@@ -74,40 +69,6 @@ void initESPUI ( void ) {
 
   uint16_t tabConfigurations;
 
-  // Diagnostics Tab
-  {
-    uint16_t tab = ESPUI.addControl( ControlType::Tab, "Diagnostics", "Diagnostics" );
-
-    labelAgOpenGpsAddress = ESPUI.addControl( ControlType::Label, "AgOpenGPS communication", "N/A", ControlColor::Turquoise, tab );
-    labelSafetyDisableAutosteer = ESPUI.addControl( ControlType::Label, "Safety disable autosteer:", "Not started", ControlColor::Emerald, tab );
-    labelSupplyVoltage = ESPUI.addControl( ControlType::Label, "Steer valve supply voltage:", "Not loaded", ControlColor::Emerald, tab );
-    labelSteerMotorCurrent = ESPUI.addControl( ControlType::Label, "Steer motor current:", "Not loaded", ControlColor::Emerald, tab );
-    labelSteerEngagedFaults = ESPUI.addControl( ControlType::Label, "Steering engaged with no power:", "Not loaded", ControlColor::Emerald, tab );
-    labelSwitchStates = ESPUI.addControl( ControlType::Label, "Switch states:", "Not loaded", ControlColor::Emerald, tab );
-    ESPUI.addControl( ControlType::Button, "Diagnostics:", "Reset all to zero", ControlColor::Emerald, tab, []( Control * control, int id ) {
-      if( id == B_UP ) {
-        diagnostics.steerSupplyVoltageMax = machine.steerSupplyVoltage;
-        diagnostics.steerSupplyVoltageMin = machine.steerSupplyVoltage;
-        diagnostics.steerEnabledWithNoPower = 0;
-        diagnostics.fuse1Shorted = 0;
-        diagnostics.fuse2Shorted = 0;
-        diagnostics.UDPTimeout = 0;
-        saveDiagnostics();
-
-        Control* labelSteerEngagedFaultsHandle = ESPUI.getControl( labelSteerEngagedFaults );
-        String str;
-        str.reserve( 30 );
-        str = "Number of faults: ";
-        str += ( int8_t ) diagnostics.steerEnabledWithNoPower;
-        str += "\nFault active since startup: No";
-        labelSteerEngagedFaultsHandle->value = str;
-        labelSteerEngagedFaultsHandle->color = ControlColor::Emerald;
-        ESPUI.updateControl( labelSteerEngagedFaultsHandle );
-        
-      }
-    } );
-  }
- 
   // Status Tab
   {
     uint16_t tab = ESPUI.addControl( ControlType::Tab, "Status", "Status" );
