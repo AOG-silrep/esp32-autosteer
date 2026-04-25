@@ -68,14 +68,6 @@ void initESPUI ( void ) {
 
   uint16_t tabConfigurations;
 
-  // Status Tab
-  {
-    uint16_t tab = ESPUI.addControl( ControlType::Tab, "Status", "Status" );
-
-    labelStatusCanESP32 = ESPUI.addControl( ControlType::Label, "ESP32 CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
-    labelStatusCanMCP2515 = ESPUI.addControl( ControlType::Label, "MCP2515 CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
-  }
-
   // Network Tab
   {
     uint16_t tab = ESPUI.addControl( ControlType::Tab, "Network", "Network" );
@@ -130,6 +122,9 @@ void initESPUI ( void ) {
     }
 
     if( steerConfig.canBusEnabled ){
+      labelStatusCanESP32 = ESPUI.addControl( ControlType::Label, "ESP32 CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
+      labelStatusCanMCP2515 = ESPUI.addControl( ControlType::Label, "MCP2515 CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
+
       {
         uint16_t sel = ESPUI.addControl( ControlType::Select, "HMS version*", String( ( int )steerConfig.canbusHmsVersion ), ControlColor::Peterriver, tab,
         []( Control * control, int id ) {
