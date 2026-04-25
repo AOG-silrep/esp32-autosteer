@@ -37,7 +37,6 @@
 // global data
 ///////////////////////////////////////////////////////////////////////////
 
-AsyncUDP udpHardwareMessage;
 Diagnostics diagnostics;
 DiagnosticsDisplay diagnosticsDisplay;
 SteerConfig steerConfig, steerConfigDefaults;
