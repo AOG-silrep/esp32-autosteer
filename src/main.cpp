@@ -47,6 +47,8 @@ Safety safety;
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 SemaphoreHandle_t i2cMutex;
+TimerHandle_t saveTimer;
+bool saveConfigRequested = false;
 
 IPAddress wifiIP( 192, 168, 1, 1 );
 
@@ -58,6 +60,11 @@ IPAddress wifiIP( 192, 168, 1, 1 );
 ///////////////////////////////////////////////////////////////////////////
 // Application
 ///////////////////////////////////////////////////////////////////////////
+void saveTimerCallback( TimerHandle_t xTimer ) {
+  // Set flag to save config from main task, not from ISR
+  saveConfigRequested = true;
+}
+
 void setup( void ) {
   Serial.begin( 115200 );
 
@@ -93,6 +100,7 @@ void setup( void ) {
   Serial.println( wifiIP );
 
   i2cMutex = xSemaphoreCreateMutex();
+  saveTimer = xTimerCreate( "SaveTimer", pdMS_TO_TICKS( 10000 ), pdFALSE, NULL, saveTimerCallback ); // save after 10 seconds of inactivity
 
   if( ( SteerConfig::OutputType ) steerConfig.outputType >= SteerConfig::OutputType::Canbus13_19Controller ||
       ( SteerConfig::AnalogIn ) steerConfig.wheelAngleInput >= SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
@@ -115,5 +123,10 @@ void setup( void ) {
 }
 
 void loop( void ) {
+  if( saveConfigRequested ) {
+    saveConfigRequested = false;
+    saveConfig();
+    Serial.println( "Config saved after 10 seconds" );
+  }
   vTaskDelay( 100 );
 }
