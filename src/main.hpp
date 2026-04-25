@@ -49,7 +49,6 @@ extern uint16_t labelRowSense;
 
 extern uint16_t labelAgOpenGpsAddress;
 extern uint16_t labelStatusOutput;
-extern uint16_t labelStatusAdc;
 extern uint16_t labelStatusCanESP32;
 extern uint16_t labelStatusCanMCP2515;
 extern uint16_t manualValveSwitcher;

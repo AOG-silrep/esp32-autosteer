@@ -16,7 +16,6 @@ uint16_t labelWheelAngleDisplacement;
 
 uint16_t labelAgOpenGpsAddress;
 uint16_t labelStatusOutput;
-uint16_t labelStatusAdc;
 uint16_t labelStatusCanESP32;
 uint16_t labelStatusCanMCP2515;
 uint16_t labelBuildDate;
@@ -74,7 +73,6 @@ void initESPUI ( void ) {
     uint16_t tab = ESPUI.addControl( ControlType::Tab, "Status", "Status" );
 
     labelStatusOutput = ESPUI.addControl( ControlType::Label, "Output:", "No Output configured", ControlColor::Turquoise, tab );
-    labelStatusAdc = ESPUI.addControl( ControlType::Label, "WAS:", "No WAS configured", ControlColor::Turquoise, tab );
     labelStatusCanESP32 = ESPUI.addControl( ControlType::Label, "ESP32 CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
     labelStatusCanMCP2515 = ESPUI.addControl( ControlType::Label, "MCP2515 CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
   #ifdef CUSTOM_PROG_VERSION
