@@ -276,6 +276,20 @@ void initESPUI ( void ) {
       } );
       ESPUI.addControl( ControlType::Option, "Direct Wheel Angle", "0", ControlColor::Alizarin, sel );
       ESPUI.addControl( ControlType::Option, "Two Arms connected to tie rod", "1", ControlColor::Alizarin, sel );
+
+      {
+        uint16_t sel = ESPUI.addControl( ControlType::Select, "WAS Voltage (ADS1115 Gain)*", String( ( int )steerConfig.adsGain ), ControlColor::Wetasphalt, tab,
+        []( Control * control, int id ) {
+          steerConfig.adsGain = ( SteerConfig::ADSGain )control->value.toInt();
+          setResetButtonToRed();
+        } );
+        ESPUI.addControl( ControlType::Option, "6.144V (2/3x gain)", "0", ControlColor::Alizarin, sel );
+        ESPUI.addControl( ControlType::Option, "4.096V (1x gain)", "512", ControlColor::Alizarin, sel );
+        //ESPUI.addControl( ControlType::Option, "2.048V (2x gain)", "1024", ControlColor::Alizarin, sel );
+        //ESPUI.addControl( ControlType::Option, "1.024V (4x gain)", "1536", ControlColor::Alizarin, sel );
+        //ESPUI.addControl( ControlType::Option, "0.512V (8x gain)", "2048", ControlColor::Alizarin, sel );
+        //ESPUI.addControl( ControlType::Option, "0.256V (16x gain)", "2560", ControlColor::Alizarin, sel );
+      }
     }
 
     {
@@ -382,20 +396,6 @@ void initESPUI ( void ) {
       } );
       ESPUI.addControl( ControlType::Option, "when Actual degrees are below zero", "0", ControlColor::Alizarin, sel );
       ESPUI.addControl( ControlType::Option, "when Actual degrees are above zero", "1", ControlColor::Alizarin, sel );
-    }
-
-    {
-      uint16_t sel = ESPUI.addControl( ControlType::Select, "WAS Voltage (ADS1115 Gain)*", String( ( int )steerConfig.adsGain ), ControlColor::Wetasphalt, tab,
-      []( Control * control, int id ) {
-        steerConfig.adsGain = ( SteerConfig::ADSGain )control->value.toInt();
-        setResetButtonToRed();
-      } );
-      ESPUI.addControl( ControlType::Option, "6.144V (2/3x gain)", "0", ControlColor::Alizarin, sel );
-      ESPUI.addControl( ControlType::Option, "4.096V (1x gain)", "512", ControlColor::Alizarin, sel );
-      //ESPUI.addControl( ControlType::Option, "2.048V (2x gain)", "1024", ControlColor::Alizarin, sel );
-      //ESPUI.addControl( ControlType::Option, "1.024V (4x gain)", "1536", ControlColor::Alizarin, sel );
-      //ESPUI.addControl( ControlType::Option, "0.512V (8x gain)", "2048", ControlColor::Alizarin, sel );
-      //ESPUI.addControl( ControlType::Option, "0.256V (16x gain)", "2560", ControlColor::Alizarin, sel );
     }
   }
 
