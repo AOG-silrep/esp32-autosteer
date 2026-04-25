@@ -74,18 +74,6 @@ void initESPUI ( void ) {
 
     labelStatusCanESP32 = ESPUI.addControl( ControlType::Label, "ESP32 CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
     labelStatusCanMCP2515 = ESPUI.addControl( ControlType::Label, "MCP2515 CAN:", "No CAN BUS configured", ControlColor::Turquoise, tab );
-  #ifdef CUSTOM_PROG_VERSION
-    String buildDate = CUSTOM_PROG_VERSION;
-    buildDate += String("\n");
-    buildDate += String(__DATE__);
-    buildDate += String(" ");
-    buildDate += String(__TIME__);
-  #else
-    String buildDate = String(__DATE__);
-    buildDate += String(" ");
-    buildDate += String(__TIME__);
-  #endif
-    labelBuildDate = ESPUI.addControl( ControlType::Label, "Build:", buildDate, ControlColor::Turquoise, tab );
   }
 
   // Network Tab
@@ -758,6 +746,19 @@ void initESPUI ( void ) {
   {
     uint16_t tab = ESPUI.addControl( ControlType::Tab, "Configurations", "Configurations" );
 
+    #ifdef CUSTOM_PROG_VERSION
+      String buildDate = CUSTOM_PROG_VERSION;
+      buildDate += String("\n");
+      buildDate += String(__DATE__);
+      buildDate += String(" ");
+      buildDate += String(__TIME__);
+    #else
+      String buildDate = String(__DATE__);
+      buildDate += String(" ");
+      buildDate += String(__TIME__);
+    #endif
+      labelBuildDate = ESPUI.addControl( ControlType::Label, "Build:", buildDate, ControlColor::Turquoise, tab );
+    
     ESPUI.addControl( ControlType::Label, "OTA Update:", "<a href='/update'>Update</a>", ControlColor::Carrot, tab );
 
     ESPUI.addControl( ControlType::Label, "Download the config:", autosteerDownloadHTML, ControlColor::Carrot, tab );
