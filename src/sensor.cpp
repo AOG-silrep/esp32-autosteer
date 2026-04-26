@@ -35,6 +35,7 @@
 Adafruit_ADS1115 ads = Adafruit_ADS1115( 0x48 );
 
 bool WAS_Error = false;
+bool WAS_SupplyError = false;
 
 volatile time_t DeereWasOnTime;
 volatile time_t DeereWasOffTime;
@@ -160,6 +161,15 @@ void sensorWorker100HzPoller( void* z ) {
         wheelAngleTmp = ( wheelAngleTmp * steerConfig.ackermann ) / 100;
       }
 
+      if( digitalRead( steerConfig.gpioWasSupplyDetectionPin ) == LOW ){
+        if( WAS_SupplyError == false ){
+          WAS_SupplyError = true;
+          diagnostics.WasPositiveSupplyShortedToGround += 1;
+          saveDiagnostics();
+        }
+      } else {
+        WAS_SupplyError = false;
+      }
       if( abs( steerSetpoints.actualSteerAngle - wheelAngleTmp ) > 600 ){
         showHardwareStateOnAOG( 0x75 );
         if( WAS_Error == false ){
@@ -235,6 +245,8 @@ void IRAM_ATTR DeereVariableDutyWasIsr() {
 void initSensors() {
 
   initialisation.wheelAngleInput = steerConfig.wheelAngleInput;
+
+  pinMode( steerConfig.gpioWasSupplyDetectionPin, INPUT );
 
   xTaskCreate( sensorWorker100HzPoller, "sensorWorker100HzPoller", 4096, NULL, 6, NULL );
 }

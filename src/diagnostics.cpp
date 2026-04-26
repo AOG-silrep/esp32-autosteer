@@ -67,6 +67,8 @@ void diagnosticWorker1Hz( void* z ) {
       str.reserve( 30 );
       str = "\nPlaubility errors: ";
       str += ( uint8_t ) diagnostics.WasPlausibilityErrors;
+      str += "\nPower supply shorted to ground: ";
+      str += ( uint8_t ) diagnostics.WasPositiveSupplyShortedToGround;
       diagnosticsDisplay.wheelAngleSensor = str;
     }
     {

@@ -67,8 +67,8 @@ struct Diagnostics {
   double steerSupplyVoltageMin;
   double steerSupplyVoltageMax;
   int8_t steerEnabledWithNoPower;
-  int8_t fuse1Shorted;
   int8_t fuse2Shorted;
+  uint8_t WasPositiveSupplyShortedToGround;
   uint8_t WasPlausibilityErrors;
   uint8_t UDPTimeout; // how many times AgOpenGPS steering UDP timed out
 };
@@ -219,6 +219,7 @@ struct SteerConfig {
   uint8_t gpioDisengagePullup = 32; // pullup driver for heavy duty disengage switches
   uint8_t gpioWASPulse = 39;
   uint8_t gpioSteerSupplyVoltage = 34;
+  uint8_t gpioWasSupplyDetectionPin = 36;
   uint16_t disengageFramePulses = 3;
   uint16_t disengageFrameMillis = 1000;
   bool disengageHeavyDuty = false;

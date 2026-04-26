@@ -115,7 +115,7 @@ void initWebServerFunctions( void ) {
     diagnostics.steerSupplyVoltageMin = machine.steerSupplyVoltage;
     diagnostics.steerEnabledWithNoPower = 0;
     diagnostics.WasPlausibilityErrors = 0;
-    diagnostics.fuse1Shorted = 0;
+    diagnostics.WasPositiveSupplyShortedToGround = 0;
     diagnostics.fuse2Shorted = 0;
     diagnostics.UDPTimeout = 0;
     saveDiagnostics();

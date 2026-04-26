@@ -125,8 +125,8 @@ json parseDiagnosticsToJson( const Diagnostics& diagnostics ) {
   j["steerSupplyVoltageMax"] = diagnostics.steerSupplyVoltageMax;
   j["steerSupplyVoltageMin"] = diagnostics.steerSupplyVoltageMin;
   j["steerEnabledWithNoPower"] = diagnostics.steerEnabledWithNoPower;
-  j["fuse1Shorted"] = diagnostics.fuse1Shorted;
   j["WasPlausibilityErrors"] = diagnostics.WasPlausibilityErrors;
+  j["WasPositiveSupplyShortedToGround"] = diagnostics.WasPositiveSupplyShortedToGround;
   j["fuse2Shorted"] = diagnostics.fuse2Shorted;
 
   return j;
@@ -139,8 +139,8 @@ void parseJsonToDiagnostics( json& j, Diagnostics& diagnostics ) {
       diagnostics.steerSupplyVoltageMax = j.value( "/steerSupplyVoltageMax"_json_pointer, 0 );
       diagnostics.steerSupplyVoltageMin = j.value( "/steerSupplyVoltageMin"_json_pointer, 0 );
       diagnostics.steerEnabledWithNoPower = j.value( "/steerEnabledWithNoPower"_json_pointer, 0 );
-      diagnostics.fuse1Shorted = j.value( "/fuse1Shorted"_json_pointer, 0 );
       diagnostics.WasPlausibilityErrors = j.value( "/WasPlausibilityErrors"_json_pointer, 0 );
+      diagnostics.WasPositiveSupplyShortedToGround = j.value( "/WasPositiveSupplyShortedToGround"_json_pointer, 0 );
       diagnostics.fuse2Shorted = j.value( "/fuse2Shorted"_json_pointer, 0 );
 
     } catch( json::exception& e ) {
