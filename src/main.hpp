@@ -69,6 +69,7 @@ struct Diagnostics {
   int8_t steerEnabledWithNoPower;
   int8_t fuse1Shorted;
   int8_t fuse2Shorted;
+  uint8_t WasPlausibilityErrors;
   uint8_t UDPTimeout; // how many times AgOpenGPS steering UDP timed out
 };
 extern Diagnostics diagnostics;
@@ -79,6 +80,7 @@ struct DiagnosticsDisplay {
   String supplyVoltage;
   String steerMotorCurrent;
   String steerEngagedFaults;
+  String wheelAngleSensor;
   String switchStates;
 };
 extern DiagnosticsDisplay diagnosticsDisplay;

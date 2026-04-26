@@ -65,6 +65,13 @@ void diagnosticWorker1Hz( void* z ) {
     {
       String str;
       str.reserve( 30 );
+      str = "\nPlaubility errors: ";
+      str += ( uint8_t ) diagnostics.WasPlausibilityErrors;
+      diagnosticsDisplay.wheelAngleSensor = str;
+    }
+    {
+      String str;
+      str.reserve( 30 );
       if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::CanbusFendt ){
         str = "Fendt Canbus WAS counts: ";
         str += ( uint16_t )machine.canbusWasCounts;

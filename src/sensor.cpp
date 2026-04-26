@@ -34,6 +34,8 @@
 
 Adafruit_ADS1115 ads = Adafruit_ADS1115( 0x48 );
 
+bool WAS_Error = false;
+
 volatile time_t DeereWasOnTime;
 volatile time_t DeereWasOffTime;
 
@@ -158,6 +160,16 @@ void sensorWorker100HzPoller( void* z ) {
         wheelAngleTmp = ( wheelAngleTmp * steerConfig.ackermann ) / 100;
       }
 
+      if( abs( steerSetpoints.actualSteerAngle - wheelAngleTmp ) > 600 ){
+        showHardwareStateOnAOG( 0x75 );
+        if( WAS_Error == false ){
+          WAS_Error = true;
+          diagnostics.WasPlausibilityErrors += 1;
+          saveDiagnostics();
+        }
+      } else {
+        WAS_Error = false;
+      }
       wheelAngleTmp = wheelAngleSensorFilter.step( wheelAngleTmp );
       steerSetpoints.actualSteerAngle = wheelAngleTmp;
 

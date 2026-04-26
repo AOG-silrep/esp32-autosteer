@@ -50,6 +50,7 @@ void initWebServerFunctions( void ) {
             document.getElementById('voltage').innerText = data.supplyVoltage;
             document.getElementById('current').innerText = data.steerMotorCurrent;
             document.getElementById('faults').innerText = data.steerEngagedFaults;
+            document.getElementById('WAS').innerText = data.wheelAngleSensor;
             document.getElementById('switches').innerText = data.switchStates;
           })
           .catch(error => {
@@ -59,6 +60,7 @@ void initWebServerFunctions( void ) {
             document.getElementById('voltage').innerText = 'Error';
             document.getElementById('current').innerText = 'Error';
             document.getElementById('faults').innerText = 'Error';
+            document.getElementById('WAS').innerText = 'Error';
             document.getElementById('switches').innerText = 'Error';
           });
       }
@@ -78,6 +80,7 @@ void initWebServerFunctions( void ) {
       <p><strong>Steer valve supply voltage:</strong> <span id="voltage"></span></p>
       <p><strong>Steer motor current:</strong> <span id="current"></span></p>
       <p><strong>Steering engaged with no power:</strong> <span id="faults"></span></p>
+      <p><strong>Wheel angle sensor:</strong> <span id="WAS"></span></p>
       <p><strong>Switch states:</strong> <span id="switches"></span></p>
       <button onclick="reset()">Reset all to zero</button>
       </div>
@@ -94,6 +97,7 @@ void initWebServerFunctions( void ) {
     json += "\"supplyVoltage\":\"" + escapeJsonString( diagnosticsDisplay.supplyVoltage ) + "\",";
     json += "\"steerMotorCurrent\":\"" + escapeJsonString( diagnosticsDisplay.steerMotorCurrent ) + "\",";
     json += "\"steerEngagedFaults\":\"" + escapeJsonString( diagnosticsDisplay.steerEngagedFaults ) + "\",";
+    json += "\"wheelAngleSensor\":\"" + escapeJsonString( diagnosticsDisplay.wheelAngleSensor ) + "\",";
     json += "\"switchStates\":\"" + escapeJsonString( diagnosticsDisplay.switchStates ) + "\"";
     json += "}";
     request->send(200, "application/json", json);
@@ -110,6 +114,7 @@ void initWebServerFunctions( void ) {
     diagnostics.steerSupplyVoltageMax = machine.steerSupplyVoltage;
     diagnostics.steerSupplyVoltageMin = machine.steerSupplyVoltage;
     diagnostics.steerEnabledWithNoPower = 0;
+    diagnostics.WasPlausibilityErrors = 0;
     diagnostics.fuse1Shorted = 0;
     diagnostics.fuse2Shorted = 0;
     diagnostics.UDPTimeout = 0;
