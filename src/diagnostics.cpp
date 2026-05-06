@@ -27,6 +27,8 @@ void diagnosticWorker1Hz( void* z ) {
       str += ( bool )safety.autosteerDisabledByMaxEngageSpeed ? "Yes" : "No" ;
       str += "\nDisabled by min speed: ";
       str += ( bool )steerSetpoints.speed < steerConfig.minAutosteerSpeed ? "Yes" : "No" ;
+      str += "\nDisabled by safety lock: ";
+      str += ( bool )machine.autosteerSafetyLock ? "Yes" : "No" ;
       str += "\nDisabled by steering wheel: ";
       if( machine.disengagedBySteeringWheel ){
         str += "Yes ";
