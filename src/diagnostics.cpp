@@ -65,7 +65,7 @@ void diagnosticWorker1Hz( void* z ) {
     {
       String str;
       str.reserve( 30 );
-      str = "\nPlaubility errors: ";
+      str = "\nPlausibility errors: ";
       str += ( uint8_t ) diagnostics.WasPlausibilityErrors;
       str += "\nPower supply shorted to ground: ";
       str += ( uint8_t ) diagnostics.WasPositiveSupplyShortedToGround;
