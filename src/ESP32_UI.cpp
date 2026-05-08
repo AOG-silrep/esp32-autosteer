@@ -687,7 +687,7 @@ void initESPUI ( void ) {
       ESPUI.addControl( ControlType::Option, "MPH", "0", ControlColor::Alizarin, sel );
       ESPUI.addControl( ControlType::Option, "KPH", "1", ControlColor::Alizarin, sel );
     }
-    if( steerConfig.canBusEnabled == false ) {
+    if( machine.canbusSteeringActive == false ) {
       {
       uint16_t sel = ESPUI.addControl( ControlType::Select, "Disengage Switch Type*", String( ( int )steerConfig.disengageSwitchType ), ControlColor::Wetasphalt, tab,
       []( Control * control, int id ) {
