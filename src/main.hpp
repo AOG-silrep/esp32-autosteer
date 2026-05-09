@@ -30,7 +30,6 @@
 #include <AsyncUDP.h>
 
 #include <ESPUI.h>
-#include <ESP32CAN.h>
 
 #include <Wire.h>
 

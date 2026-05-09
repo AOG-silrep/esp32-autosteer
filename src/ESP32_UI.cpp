@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include <ESPUI.h>
+#include <driver/twai.h>  // Native ESP-IDF TWAI driver
 
 #include "main.hpp"
 #include "jsonFunctions.hpp"
@@ -59,7 +60,7 @@ void initESPUI ( void ) {
       saveConfig();
       LittleFS.end();
       if( steerConfig.canBusEnabled ){
-        ESP32Can.CANStop();
+        twai_stop();
       }
       ESP.restart();
     }
@@ -104,7 +105,7 @@ void initESPUI ( void ) {
           vTaskDelete( canSenderHandle );
           canSenderHandle = NULL;
         }
-        ESP32Can.CANStop();
+        twai_stop();
       }
       steerConfig.canBusEnabled = control->value.toInt() == 1;
       setResetButtonToRed();
@@ -860,7 +861,7 @@ void initESPUI ( void ) {
       if( final ) {
         request->_tempFile.close();
         if( steerConfig.canBusEnabled ){
-          ESP32Can.CANStop();
+          twai_stop();
         }
         delay(10);
         ESP.restart();

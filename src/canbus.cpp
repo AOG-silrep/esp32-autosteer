@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 #include <ESPUI.h>
-#include <CAN_config.h>
+#include <driver/twai.h>  // Native ESP-IDF TWAI driver
 #include <SPI.h>
 #include <mcp_can.h> // MCP2515
 SPIClass *hspi;
@@ -29,11 +29,13 @@ SPIClass *hspi;
 #include "main.hpp"
 #include "jsonFunctions.hpp"
 
-CAN_device_t CAN_cfg;
+// TWAI configuration for native CAN driver
+twai_general_config_t twai_general_config;
+twai_timing_config_t twai_timing_config;
+twai_filter_config_t twai_filter_config;
+
 TaskHandle_t canReceiverHandle = NULL;
 TaskHandle_t canSenderHandle = NULL;
-
-constexpr uint8_t rxQueueSize = 10;
 
 constexpr uint16_t j1939PgnEEC1 = 61444;
 constexpr uint16_t j1939PgnWBSD = 65096;
@@ -60,18 +62,19 @@ void canFendtSteeringReceiver100Hz( void* z ) {
   constexpr TickType_t xFrequency = 10;
   TickType_t xLastWakeTime = xTaskGetTickCount();
 
-  CAN_frame_t canFrame;
+  twai_message_t message;
   time_t lastCanbusMsgMillis;
 
   for( ;; ) {
-    if( xQueueReceive( CAN_cfg.rx_queue, &canFrame, xFrequency ) == pdTRUE ) {
+    if( twai_receive( &message, pdMS_TO_TICKS( xFrequency )) == ESP_OK ) {
       lastCanbusMsgMillis = millis();
-      if( canFrame.FIR.B.FF == CAN_frame_ext ) {
-        if( canFrame.MsgID == FendtAutosteer ){ //0x0CEF2CF0
-          if( canFrame.data.u8[0] == 0x05 && canFrame.data.u8[1] == 0x1A && canFrame.data.u8[2] == 0x00 ){
+
+      if( message.flags & TWAI_MSG_FLAG_EXTD ) {
+        if( message.identifier == FendtAutosteer ) { // 0x0CEF2CF0
+          if( message.data[0] == 0x05 && message.data[1] == 0x1A && message.data[2] == 0x00 ) {
             machine.steeringEnabled = false;
-          } else if( canFrame.data.u8[0] == 0x05 && canFrame.data.u8[1] == 0x0A ){
-            machine.canbusWasCounts = ((( int8_t ) canFrame.data.u8[4] << 8 ) + canFrame.data.u8[5] );
+          } else if( message.data[0] == 0x05 && message.data[1] == 0x0A ) {
+            machine.canbusWasCounts = ((( int8_t )message.data[4] << 8 ) + message.data[5] );
             machine.lastCanbusWasMillis = millis();
           }
         }
@@ -110,15 +113,16 @@ void canReceiver10Hz( void* z ) {
   constexpr TickType_t xFrequency = 10;
   TickType_t xLastWakeTime = xTaskGetTickCount();
 
-  CAN_frame_t canFrame;
+  twai_message_t message;
   time_t lastCanbusMsgMillis;
 
   for( ;; ) {
-    if( xQueueReceive( CAN_cfg.rx_queue, &canFrame, xFrequency ) == pdTRUE ) {
+    if( twai_receive( &message, pdMS_TO_TICKS( xFrequency )) == ESP_OK ) {
       lastCanbusMsgMillis = millis();
-      if( canFrame.FIR.B.FF == CAN_frame_ext ) {
 
-        uint16_t pgn = ( canFrame.MsgID >> 8 ) & 0x03FFFF;
+      if( message.flags & TWAI_MSG_FLAG_EXTD ) {
+
+        uint16_t pgn = ( message.identifier >> 8 ) & 0x03FFFF;
         uint16_t pduFormat = ( pgn >> 8 ) & 0xFF;  // PDU format is bits 6-13
         if( pduFormat < 240 ){   // if PDU format is less than 240, we subtract the PDU specific address
           uint8_t pduSpecific = pgn & 0xFF;
@@ -129,66 +133,66 @@ void canReceiver10Hz( void* z ) {
 
           // Electronic Engine Controller 1
           case j1939PgnEEC1: {
-            steerCanData.motorRpm = ( canFrame.data.u8[4] << 8 | canFrame.data.u8[3] ) / 8;
+            steerCanData.motorRpm = ( message.data[4] << 8 | message.data[3] ) / 8;
           }
           break;
 
              // Wheel-based Speed and Distance
           case j1939PgnWBSD: {
-            steerCanData.speed = ( canFrame.data.u8[1] << 8 | canFrame.data.u8[0] ) / 1000 * 3.6;
+            steerCanData.speed = ( message.data[1] << 8 | message.data[0] ) / 1000 * 3.6;
           }
           break;
 
           // Primary or Rear Hitch Status
           case j1939PgnPHS: {
-            steerCanData.rearHitchPosition = canFrame.data.u8[0];
+            steerCanData.rearHitchPosition = message.data[0];
           }
           break;
 
           // Secondary or Front Hitch Status
           case j1939PgnFHS: {
-            steerCanData.frontHitchPosition = canFrame.data.u8[0];
+            steerCanData.frontHitchPosition = message.data[0];
           }
           break;
 
           // Primary or Rear Power Take off Output Shaft
           case j1939PgnRPTO: {
-            steerCanData.rearPtoRpm = ( canFrame.data.u8[1] << 8 | canFrame.data.u8[0] ) / 8;
+            steerCanData.rearPtoRpm = ( message.data[1] << 8 | message.data[0] ) / 8;
           }
           break;
 
           // Secondary or Front Power Take off Output Shaft
           case j1939PgnFPTO: {
-            steerCanData.frontPtoRpm = ( canFrame.data.u8[1] << 8 | canFrame.data.u8[0] ) / 8;
+            steerCanData.frontPtoRpm = ( message.data[1] << 8 | message.data[0] ) / 8;
           }
           break;
 
           // Auxiliary Hydraulic 1
           case j1939PgnAH1: {
-            steerCanData.hydraulicRemote1 = ( canFrame.data.u8[1] << 8 | canFrame.data.u8[0] ) / 8;
+            steerCanData.hydraulicRemote1 = ( message.data[1] << 8 | message.data[0] ) / 8;
           }
           break;
 
           // Auxiliary Hydraulic 2
           case j1939PgnAH2: {
-            steerCanData.hydraulicRemote2 = ( canFrame.data.u8[1] << 8 | canFrame.data.u8[0] ) / 8;
+            steerCanData.hydraulicRemote2 = ( message.data[1] << 8 | message.data[0] ) / 8;
           }
           break;
 
           // Auxiliary Hydraulic 3
           case j1939PgnAH3: {
-            steerCanData.hydraulicRemote3 = ( canFrame.data.u8[1] << 8 | canFrame.data.u8[0] ) / 8;
+            steerCanData.hydraulicRemote3 = ( message.data[1] << 8 | message.data[0] ) / 8;
           }
           break;
 
-          case j1939PgnVMCWas: { //0x0CAC1C13
-            if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){      
-              machine.canbusWasCounts = (( canFrame.data.u8[1] << 8 ) + canFrame.data.u8[0] );  // CAN Buf[1]*256 + CAN Buf[0] = CAN Est Curve
+          case j1939PgnVMCWas: { // 0x0CAC1C13
+            if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ) {
+              machine.canbusWasCounts = (( message.data[1] << 8 ) + message.data[0] );
               machine.lastCanbusWasMillis = millis();
             }
-            machine.canbusSteeringState = ( canFrame.data.u8[2] );
+            machine.canbusSteeringState = ( message.data[2] );
             machine.lastCanbusSteeringMillis = millis();
-            if( machine.canbusSteeringState == 0x14 ){ // we need the steer enabled confirmation from the machine before disengaging again
+            if( machine.canbusSteeringState == 0x14 ) { // we need the steer enabled confirmation from the machine before disengaging again
               readyToDisengage = true;
               machine.disengageInput = false;
             } else if( machine.canbusSteeringState == 0x00 ) { // handwheel activity disengages
@@ -200,8 +204,8 @@ void canReceiver10Hz( void* z ) {
               readyToDisengage = false;
               machine.disengageInput = true;
               machine.lastDisengageMillis = millis();
-            } else if ( machine.canbusSteeringState == 0x20 ) { // stagnant
-              if( readyToDisengage == true ){
+            } else if( machine.canbusSteeringState == 0x20 ) { // stagnant
+              if( readyToDisengage == true ) {
                 showHardwareStateOnAOG( 0x61 );
               }
               machine.steeringEnabled = false;
@@ -218,13 +222,13 @@ void canReceiver10Hz( void* z ) {
           }
           break;
 
-          default:{
+          default: {
             // Can Frame ID specific, since PGNs match but message IDs don't
-            switch( canFrame.MsgID ){
+            switch( message.identifier ) {
 
-              case VMCAutosteer:{ //0x18EF1C00
-                if(( canFrame.data.u8[0] ) == 15 && ( canFrame.data.u8[1] ) == 96 && ( canFrame.data.u8[2] ) == 1 ){
-                  if( machine.canbusSteeringState == 0x10 ){ //only try to engage when machine is ready, to avoid race conditions
+              case VMCAutosteer: { // 0x18EF1C00
+                if(( message.data[0] ) == 15 && ( message.data[1] ) == 96 && ( message.data[2] ) == 1 ) {
+                  if( machine.canbusSteeringState == 0x10 ) { // only try to engage when machine is ready, to avoid race conditions
                     if( steerSetpoints.speed > steerConfig.maxAutosteerSpeed ) {
                       machine.steeringEnabled = false;
                       safety.autosteerDisabledByMaxEngageSpeed = true;
@@ -235,20 +239,22 @@ void canReceiver10Hz( void* z ) {
                   } else {
                     showHardwareStateOnAOG( machine.canbusSteeringState );
                   }
-                } else if(( canFrame.data.u8[0] ) == 15 && ( canFrame.data.u8[1] ) == 96 && ( canFrame.data.u8[2] ) == 0 ){
+                } else if(( message.data[0] ) == 15 && ( message.data[1] ) == 96 && ( message.data[2] ) == 0 ) {
                   machine.steeringEnabled = false;
               }
+              break;
 
-              case DeereHydraulicRemotes:{ //0x18FFFB22
-                if(( canFrame.data.u8[0] ) == 0xF2 && ( canFrame.data.u8[1] ) == 0x17 ){
-                  steerCanData.hydraulicRemote1 = ( canFrame.data.u8[2] );
-                  steerCanData.hydraulicRemote2 = ( canFrame.data.u8[3] );
-                  steerCanData.hydraulicRemote3 = ( canFrame.data.u8[4] );
+              case DeereHydraulicRemotes: { // 0x18FFFB22
+                if(( message.data[0] ) == 0xF2 && ( message.data[1] ) == 0x17 ) {
+                  steerCanData.hydraulicRemote1 = ( message.data[2] );
+                  steerCanData.hydraulicRemote2 = ( message.data[3] );
+                  steerCanData.hydraulicRemote3 = ( message.data[4] );
                 }
               }
-              
-              default:
               break;
+
+              default:
+                break;
               }
             }
           }
@@ -310,23 +316,24 @@ void can13_19Sender10Hz( void* z ) { // Valtra Massey Challenger
     if( millis() - machine.lastCanbusSteeringMillis > 500 ){
       machine.steeringEnabled = false;
     }
-    CAN_frame_t canFrame;
-    canFrame.MsgID = 0x0CAD131C;
-    canFrame.FIR.B.FF = CAN_frame_ext;
-    canFrame.FIR.B.DLC = 8;
-    canFrame.data.u8[0] = ( uint8_t ) machine.valveOutput;
-    canFrame.data.u8[1] = ( uint8_t ) ( machine.valveOutput >> 8 );
-    if( steerSetpoints.enabled == true && steerSetpoints.speed > steerConfig.minAutosteerSpeed ){
-      canFrame.data.u8[2] = 253;
+    twai_message_t message = {};
+    message.identifier = 0x0CAD131C;
+    message.flags = TWAI_MSG_FLAG_EXTD;
+    message.data_length_code = 8;
+    message.data[0] = ( uint8_t ) machine.valveOutput;
+    message.data[1] = (uint8_t)( machine.valveOutput >> 8 );
+    if( steerSetpoints.enabled == true && steerSetpoints.speed > steerConfig.minAutosteerSpeed ) {
+      message.data[2] = 253;
     } else {
-      canFrame.data.u8[2] = 252;
+      message.data[2] = 252;
     }
-    canFrame.data.u8[3] = 0;
-    canFrame.data.u8[4] = 0;
-    canFrame.data.u8[5] = 0;
-    canFrame.data.u8[6] = 0;
-    canFrame.data.u8[7] = 0;
-    ESP32Can.CANWriteFrame( &canFrame );
+    message.data[3] = 0;
+    message.data[4] = 0;
+    message.data[5] = 0;
+    message.data[6] = 0;
+    message.data[7] = 0;
+
+    twai_transmit( &message, pdMS_TO_TICKS( 10 ));
 
     vTaskDelayUntil( &xLastWakeTime, xFrequency );
   }
@@ -338,23 +345,23 @@ void canF0_240Sender50Hz( void* z ) { // Fendt
 
   for( ;; ) {
 
-    CAN_frame_t canFrame;
-    canFrame.MsgID = 0x0CEFF02C;
-    canFrame.FIR.B.FF = CAN_frame_ext;
-    canFrame.FIR.B.DLC = 6;
-    canFrame.data.u8[0] = 5;
-    canFrame.data.u8[1] = 9;
-    canFrame.data.u8[3] = 10;
-    if( steerSetpoints.enabled == true && steerSetpoints.speed > steerConfig.minAutosteerSpeed ){
-      canFrame.data.u8[2] = 3;
-      canFrame.data.u8[4] = ( uint8_t ) highByte( machine.valveOutput );
-      canFrame.data.u8[5] = ( uint8_t ) lowByte( machine.valveOutput );
+    twai_message_t message = {};
+    message.identifier = 0x0CEFF02C;
+    message.flags = TWAI_MSG_FLAG_EXTD;
+    message.data_length_code = 6;
+    message.data[0] = 5;
+    message.data[1] = 9;
+    message.data[3] = 10;
+    if( steerSetpoints.enabled == true && steerSetpoints.speed > steerConfig.minAutosteerSpeed ) {
+      message.data[2] = 3;
+      message.data[4] = ( uint8_t )highByte( machine.valveOutput );
+      message.data[5] = ( uint8_t )lowByte( machine.valveOutput );
     } else {
-      canFrame.data.u8[2] = 2;
-      canFrame.data.u8[4] = 0;
-      canFrame.data.u8[5] = 0;
+      message.data[2] = 2;
+      message.data[4] = 0;
+      message.data[5] = 0;
     }
-    ESP32Can.CANWriteFrame( &canFrame );
+    twai_transmit( &message, pdMS_TO_TICKS( 10 ));
 
     vTaskDelayUntil( &xLastWakeTime, xFrequency );
   }
@@ -573,18 +580,20 @@ void canComplementSwitchWorker10Hz( void* z ) {
   }
 }
 
-void claimAddress( CAN_frame_t msgISO ){
-  msgISO.FIR.B.FF = CAN_frame_ext;
-  msgISO.FIR.B.DLC = 8;
-  msgISO.data.u8[0] = 0x00;
-  msgISO.data.u8[1] = 0x00;
-  msgISO.data.u8[2] = 0xC0;
-  msgISO.data.u8[3] = 0x0C;
-  msgISO.data.u8[4] = 0x00;
-  msgISO.data.u8[5] = 0x17;
-  msgISO.data.u8[6] = 0x02;
-  msgISO.data.u8[7] = 0x20;
-  ESP32Can.CANWriteFrame( &msgISO );
+void claimAddress( uint32_t address ) {
+  twai_message_t message = {};
+  message.identifier = address;
+  message.flags = TWAI_MSG_FLAG_EXTD;
+  message.data_length_code = 8;
+  message.data[0] = 0x00;
+  message.data[1] = 0x00;
+  message.data[2] = 0xC0;
+  message.data[3] = 0x0C;
+  message.data[4] = 0x00;
+  message.data[5] = 0x17;
+  message.data[6] = 0x02;
+  message.data[7] = 0x20;
+  twai_transmit( &message, pdMS_TO_TICKS( 10 ));
 }
 
 void initCan() {
@@ -593,21 +602,35 @@ void initCan() {
     xTaskCreate( canbusStateMessage, "canbusStateMessage", 2048, NULL, 0, NULL );
     ESPUI.getControl( labelStatusCanESP32 )->color = ControlColor::Alizarin;
     ESPUI.updateLabel( labelStatusCanESP32, "Canbus controller failed to start"); // will be updated when Canbus thread runs
-    CAN_cfg.speed = ( CAN_speed_t )steerConfig.canBusSpeed;
-    CAN_cfg.tx_pin_id = ( gpio_num_t )steerConfig.canBusTx;
-    CAN_cfg.rx_pin_id = ( gpio_num_t )steerConfig.canBusRx;
-    CAN_cfg.rx_queue = xQueueCreate( rxQueueSize, sizeof( CAN_frame_t ) );
-    // Init CAN Module
-    ESP32Can.CANInit();
-    CAN_frame_t msgISO;
-    if( steerConfig.outputType == SteerConfig::OutputType::Canbus13_19Controller ){
-      msgISO.MsgID = 0x18EEFF1C;
+
+    twai_general_config = TWAI_GENERAL_CONFIG_DEFAULT(( gpio_num_t )steerConfig.canBusTx, ( gpio_num_t )steerConfig.canBusRx, TWAI_MODE_NORMAL );
+    twai_general_config.rx_queue_len = 10;
+    
+    if( steerConfig.canBusSpeed == SteerConfig::CanBusSpeed::Speed250kbs ) {
+      twai_timing_config = TWAI_TIMING_CONFIG_250KBITS();
+    } else if( steerConfig.canBusSpeed == SteerConfig::CanBusSpeed::Speed500kbs ) {
+      twai_timing_config = TWAI_TIMING_CONFIG_500KBITS();
+    }
+
+    twai_filter_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
+
+    if( twai_driver_install( &twai_general_config, &twai_timing_config, &twai_filter_config ) != ESP_OK ) {
+      Serial.println( "Failed to install TWAI driver" );
+    }
+
+    if( twai_start() != ESP_OK ) {
+      Serial.println( "Failed to start TWAI driver" );
+    }
+
+    uint32_t msgISO;
+    if( steerConfig.outputType == SteerConfig::OutputType::Canbus13_19Controller ) {
+      msgISO = 0x18EEFF1C;
       claimAddress( msgISO );
       xTaskCreate( can13_19Sender10Hz, "can13_19Sender", 2048, NULL, 5, &canSenderHandle );
       xTaskCreate( canComplementSwitchWorker10Hz, "canComplementSwitch", 2048, NULL, 5, NULL );
       xTaskCreate( canReceiver10Hz, "canReceiver", 2048, NULL, 5, &canReceiverHandle );
     } else if( steerConfig.outputType == SteerConfig::OutputType::CanbusF0_240Controller ){
-      msgISO.MsgID = 0x18EEFF2C;
+      msgISO = 0x18EEFF2C;
       claimAddress( msgISO );
       xTaskCreate( canF0_240Sender50Hz, "canF0_240Sender", 2048, NULL, 5, &canSenderHandle );
       xTaskCreate( canComplementSwitchWorker10Hz, "canComplementSwitch", 2048, NULL, 5, NULL );
