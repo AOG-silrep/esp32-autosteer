@@ -34,7 +34,7 @@
 
 Adafruit_ADS1115 ads = Adafruit_ADS1115( 0x48 );
 
-bool WAS_Error = false;
+bool WAS_Error = true; // true until WAS angle calculated on startup
 bool WAS_SupplyError = false;
 
 volatile time_t DeereWasOnTime;
@@ -170,7 +170,7 @@ void sensorWorker100HzPoller( void* z ) {
       } else {
         WAS_SupplyError = false;
       }
-      if( abs( steerSetpoints.actualSteerAngle - wheelAngleTmp ) > 600 ){
+      if( abs( steerSetpoints.actualSteerAngle - wheelAngleTmp ) > 5.00 ){ // a jump of more than 5.00 degrees is a bad sensor
         showHardwareStateOnAOG( 0x75 );
         if( WAS_Error == false ){
           WAS_Error = true;

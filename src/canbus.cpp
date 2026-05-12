@@ -195,6 +195,7 @@ void canReceiver10Hz( void* z ) {
             if( machine.canbusSteeringState == 0x14 ) { // we need the steer enabled confirmation from the machine before disengaging again
               readyToDisengage = true;
               machine.disengageInput = false;
+              machine.disengagedBySteeringWheel = false;
             } else if( machine.canbusSteeringState == 0x00 ) { // handwheel activity disengages
               if( steerSetpoints.enabled == true ) {
                 machine.autosteerSafetyLock = true;
@@ -214,10 +215,9 @@ void canReceiver10Hz( void* z ) {
             } else if( readyToDisengage == true ) { // going from 'engaged' to anything else will disengage
               machine.steeringEnabled = false;
               readyToDisengage = false;
-              machine.disengageInput = true;
               machine.lastDisengageMillis = millis();
             } else {
-              machine.disengagedBySteeringWheel = false;
+              machine.disengageInput = false;
             }
           }
           break;
@@ -308,8 +308,8 @@ void canReceiver10Hz( void* z ) {
   }
 }
 
-void can13_19Sender10Hz( void* z ) { // Valtra Massey Challenger
-  constexpr TickType_t xFrequency = 100;
+void can13_19Sender100Hz( void* z ) { // Valtra Massey Challenger
+  constexpr TickType_t xFrequency = 10;
   TickType_t xLastWakeTime = xTaskGetTickCount();
 
   for( ;; ) {
@@ -598,6 +598,7 @@ void claimAddress( uint32_t address ) {
 
 void initCan() {
   if( steerConfig.canBusEnabled ) {
+    Serial.println("Canbus enabled");
     udpHardwareMessage.listen( initialisation.portSendFrom );
     xTaskCreate( canbusStateMessage, "canbusStateMessage", 2048, NULL, 0, NULL );
     ESPUI.getControl( labelStatusCanESP32 )->color = ControlColor::Alizarin;
@@ -626,9 +627,10 @@ void initCan() {
     if( steerConfig.outputType == SteerConfig::OutputType::Canbus13_19Controller ) {
       msgISO = 0x18EEFF1C;
       claimAddress( msgISO );
-      xTaskCreate( can13_19Sender10Hz, "can13_19Sender", 2048, NULL, 5, &canSenderHandle );
+      xTaskCreate( can13_19Sender100Hz, "can13_19Sender", 2048, NULL, 5, &canSenderHandle );
       xTaskCreate( canComplementSwitchWorker10Hz, "canComplementSwitch", 2048, NULL, 5, NULL );
       xTaskCreate( canReceiver10Hz, "canReceiver", 2048, NULL, 5, &canReceiverHandle );
+      Serial.println("Danfoss 13/19 valve started");
     } else if( steerConfig.outputType == SteerConfig::OutputType::CanbusF0_240Controller ){
       msgISO = 0x18EEFF2C;
       claimAddress( msgISO );
@@ -636,8 +638,10 @@ void initCan() {
       xTaskCreate( canComplementSwitchWorker10Hz, "canComplementSwitch", 2048, NULL, 5, NULL );
       xTaskCreate( canFendtEngageReceiver10Hz, "canFendtEngageReceiver", 4096, NULL, 5, NULL );
       xTaskCreate( canFendtSteeringReceiver100Hz, "canReceiver", 2048, NULL, 5, &canReceiverHandle );
+      Serial.println("F0/240 valve started");
     } else {
       xTaskCreate( canReceiver10Hz, "canReceiver", 2048, NULL, 5, &canReceiverHandle );
+      Serial.println("Non-steering Canbus receiver started");
     }
     ESPUI.getControl( labelStatusCanESP32 )->color = ControlColor::Emerald;
 

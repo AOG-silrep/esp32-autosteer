@@ -27,6 +27,8 @@ void diagnosticWorker1Hz( void* z ) {
       str += ( bool )safety.autosteerDisabledByMaxEngageSpeed ? "Yes" : "No" ;
       str += "\nDisabled by min speed: ";
       str += ( bool )steerSetpoints.speed < steerConfig.minAutosteerSpeed ? "Yes" : "No" ;
+      str += "\nDisabled by safety lock: ";
+      str += ( bool )machine.autosteerSafetyLock ? "Yes" : "No" ;
       str += "\nDisabled by steering wheel: ";
       if( machine.disengagedBySteeringWheel ){
         str += "Yes ";
@@ -65,7 +67,7 @@ void diagnosticWorker1Hz( void* z ) {
     {
       String str;
       str.reserve( 30 );
-      str = "\nPlaubility errors: ";
+      str = "\nPlausibility errors: ";
       str += ( uint8_t ) diagnostics.WasPlausibilityErrors;
       str += "\nPower supply shorted to ground: ";
       str += ( uint8_t ) diagnostics.WasPositiveSupplyShortedToGround;
