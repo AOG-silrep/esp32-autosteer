@@ -191,7 +191,8 @@ void diagnosticWorker1Hz( void* z ) {
           }
         }
       } else {
-        str = steerConfig.steerSwitchIsMomentary ? "\nMomentary steer switch: " : "\nMaintained steer switch: ";
+        str = steerConfig.steerSwitchIsMomentary ? "\nMomentary" : "\nMaintained";
+        str += " steer switch: ";
         str += ( bool )( digitalRead( steerConfig.gpioSteerswitch ) != steerConfig.steerswitchActiveLow ) ? "On " : "Off " ;
         time_t elapsed = millis() - machine.lastAutosteerMillis;
         if( elapsed < 1000 ){
