@@ -171,9 +171,9 @@ void sensorWorker100HzPoller( void* z ) {
         WAS_SupplyError = false;
       }
       if( abs( steerSetpoints.actualSteerAngle - wheelAngleTmp ) > 5.00 ){ // a jump of more than 5.00 degrees is a bad sensor
-        showHardwareStateOnAOG( 0x75 );
         if( WAS_Error == false ){
           WAS_Error = true;
+          showHardwareStateOnAOG( 0x75 );
           diagnostics.WasPlausibilityErrors += 1;
           saveDiagnostics();
         }
