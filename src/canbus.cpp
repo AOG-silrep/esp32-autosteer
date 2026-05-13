@@ -216,6 +216,7 @@ void canReceiver10Hz( void* z ) {
               machine.steeringEnabled = false;
               readyToDisengage = false;
               machine.lastDisengageMillis = millis();
+              AogToMachineEngagedMismatch = true;
             } else {
               machine.disengageInput = false;
             }
