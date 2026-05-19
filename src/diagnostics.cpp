@@ -250,6 +250,22 @@ void diagnosticWorker1Hz( void* z ) {
       diagnosticsDisplay.switchStates = str;
     }
     {
+      String str;
+      str.reserve( 30 );
+      str = "\nTool lift ";
+      if( hydLift == 0 ){
+        str = "disabled ";
+      } else if( hydLift == 1 ){
+        str = "down ";
+      } else if( hydLift == 2 ){
+        str = "up ";
+      }
+      time_t elapsed = ( millis() - lastHydLiftMillis ) / 1000;
+      str += ( time_t )elapsed;
+      str += " seconds ago";
+      diagnosticsDisplay.implementStates = str;
+    }
+    {
       switch( steerConfig.outputType ) {
         case SteerConfig::OutputType::SteeringMotorIBT2: {
           Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );

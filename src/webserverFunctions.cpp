@@ -52,6 +52,7 @@ void initWebServerFunctions( void ) {
             document.getElementById('faults').innerText = data.steerEngagedFaults;
             document.getElementById('WAS').innerText = data.wheelAngleSensor;
             document.getElementById('switches').innerText = data.switchStates;
+            document.getElementById('implement').innerText = data.implementStates;
           })
           .catch(error => {
             console.error('Diagnostics load error', error);
@@ -62,6 +63,7 @@ void initWebServerFunctions( void ) {
             document.getElementById('faults').innerText = 'Error';
             document.getElementById('WAS').innerText = 'Error';
             document.getElementById('switches').innerText = 'Error';
+            document.getElementById('implement').innerText = 'Error';
           });
       }
       function reset() {
@@ -82,6 +84,7 @@ void initWebServerFunctions( void ) {
       <p><strong>Steering engaged with no power:</strong> <span id="faults"></span></p>
       <p><strong>Wheel angle sensor:</strong> <span id="WAS"></span></p>
       <p><strong>Switch states:</strong> <span id="switches"></span></p>
+      <p><strong>Implement:</strong> <span id="implement"></span></p>
       <button onclick="reset()">Reset all to zero</button>
       </div>
       </body>
@@ -98,7 +101,8 @@ void initWebServerFunctions( void ) {
     json += "\"steerMotorCurrent\":\"" + escapeJsonString( diagnosticsDisplay.steerMotorCurrent ) + "\",";
     json += "\"steerEngagedFaults\":\"" + escapeJsonString( diagnosticsDisplay.steerEngagedFaults ) + "\",";
     json += "\"wheelAngleSensor\":\"" + escapeJsonString( diagnosticsDisplay.wheelAngleSensor ) + "\",";
-    json += "\"switchStates\":\"" + escapeJsonString( diagnosticsDisplay.switchStates ) + "\"";
+    json += "\"switchStates\":\"" + escapeJsonString( diagnosticsDisplay.switchStates ) + "\",";
+    json += "\"implementStates\":\"" + escapeJsonString( diagnosticsDisplay.implementStates ) + "\"";
     json += "}";
     request->send(200, "application/json", json);
   });

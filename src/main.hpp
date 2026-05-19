@@ -37,6 +37,8 @@
 
 extern bool AogToMachineEngagedMismatch;
 extern int8_t ditherAmount; // variable gets reset upon user changing dither
+extern uint8_t hydLift;
+extern time_t lastHydLiftMillis;
 
 extern uint16_t labelLoad;
 extern uint16_t labelWheelAngle;
@@ -81,6 +83,7 @@ struct DiagnosticsDisplay {
   String steerEngagedFaults;
   String wheelAngleSensor;
   String switchStates;
+  String implementStates;
 };
 extern DiagnosticsDisplay diagnosticsDisplay;
 ///////////////////////////////////////////////////////////////////////////

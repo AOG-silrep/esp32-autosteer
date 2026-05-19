@@ -67,7 +67,9 @@ bool AogToMachineEngagedMismatch = false; // do not update machine engaged state
 bool ditherDirection = false;
 bool dtcAutosteerPrevious = false;
 bool UDPTimeout = true; // AOG will probably not be running at startup
+uint8_t hydLift = 0;
 uint8_t previousHydLift = 0;
+time_t lastHydLiftMillis = 0;
 
 void ditherWorker10HZ( void* z ) {
 
@@ -711,10 +713,11 @@ void initAutosteer() {
         
         case 0x7FEF: { // Machine message
           if( steerConfig.canbusHmsVersion == SteerConfig::HmsVersion::DeereHex18FFFA21 && steerConfig.canBusEnabled ){
-            uint8_t hydLift = data[7];
-            if( hydLift != 0 ){ // enabled in AOG
-              if( hydLift != previousHydLift ){
-                previousHydLift = hydLift;
+            hydLift = data[7];
+            if( hydLift != previousHydLift ){
+              previousHydLift = hydLift;
+              lastHydLiftMillis = millis();
+              if( hydLift != 0 ){ // enabled in AOG
                 twai_message_t message = {};
                 message.identifier = 0x18FFFA21;
                 message.flags = TWAI_MSG_FLAG_EXTD;
