@@ -191,12 +191,9 @@ void diagnosticWorker1Hz( void* z ) {
           }
         }
       } else {
-        if( steerConfig.steerSwitchIsMomentary == true ){
-          str = "\nMomentary steer switch: ";
-        } else {
-          str = "\nMaintained steer switch: ";
-        }
-        str += ( bool )( digitalRead( steerConfig.gpioSteerswitch ) == steerConfig.steerswitchActiveLow ) ? "On " : "Off " ;
+        str = steerConfig.steerSwitchIsMomentary ? "\nMomentary" : "\nMaintained";
+        str += " steer switch: ";
+        str += ( bool )( digitalRead( steerConfig.gpioSteerswitch ) != steerConfig.steerswitchActiveLow ) ? "On " : "Off " ;
         time_t elapsed = millis() - machine.lastAutosteerMillis;
         if( elapsed < 1000 ){
           str += ( time_t )elapsed;
@@ -211,12 +208,12 @@ void diagnosticWorker1Hz( void* z ) {
         str += ( bool ) machine.workswitchState ? "On" : "Off" ;
       } else {
         str += "\nWork switch: ";
-        str += ( bool )( digitalRead( steerConfig.gpioWorkswitch ) == steerConfig.workswitchActiveLow ) ? "On" : "Off" ;
+        str += ( bool )( digitalRead( steerConfig.gpioWorkswitch ) != steerConfig.workswitchActiveLow ) ? "On" : "Off" ;
       }
       switch( steerConfig.disengageSwitchType ) {
         case SteerConfig::DisengageSwitchType::Encoder: {
           str += "\nEncoder on steering wheel: ";
-          str += ( bool )digitalRead( steerConfig.gpioDisengage ) ? "On" : "Off" ;
+          str += ( bool )digitalRead( steerConfig.gpioDisengage ) ? "Off" : "On" ; // disengage is inverted
           str += " / ";
           str += machine.handwheelPulseCount;
           str += " counts";
@@ -225,7 +222,7 @@ void diagnosticWorker1Hz( void* z ) {
 
         case SteerConfig::DisengageSwitchType::Hydraulic: {
           str += "\nHydraulic disengage switch: ";
-          str += ( bool )( digitalRead( steerConfig.gpioDisengage ) != steerConfig.hydraulicSwitchActiveLow ) ? "On" : "Off" ;
+          str += ( bool )( digitalRead( steerConfig.gpioDisengage ) == steerConfig.hydraulicSwitchActiveLow ) ? "On" : "Off" ;
         }
         break;
 
