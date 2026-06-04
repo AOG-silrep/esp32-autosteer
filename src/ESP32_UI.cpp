@@ -302,7 +302,7 @@ void initESPUI ( void ) {
       }
     }
 
-    {
+    if( steerConfig.wheelAngleInput != SteerConfig::AnalogIn::CanbusFendt ) {
       uint16_t num = ESPUI.addControl( ControlType::Number, "Wheel Angle Sensor Center", String( steerConfig.wheelAnglePositionZero ), ControlColor::Peterriver, tab,
       []( Control * control, int id ) {
         steerConfig.wheelAnglePositionZero = control->value.toInt();

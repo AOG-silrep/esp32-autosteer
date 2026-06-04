@@ -102,7 +102,7 @@ void sensorWorker100HzPoller( void* z ) {
       break;
       
       case SteerConfig::AnalogIn::CanbusFendt: {
-        wheelAngleTmp = ( uint16_t )( machine.canbusWasCounts + 32128 );
+        wheelAngleTmp = ( int16_t )machine.FendtWasCounts;
       }
       break;
 
@@ -117,7 +117,9 @@ void sensorWorker100HzPoller( void* z ) {
 
     {
       steerSetpoints.wheelAngleCounts = wheelAngleTmp;
-      wheelAngleTmp -= steerConfig.wheelAnglePositionZero;
+      if( steerConfig.wheelAngleInput != SteerConfig::AnalogIn::CanbusFendt ) {
+        wheelAngleTmp -= steerConfig.wheelAnglePositionZero; // Fendt is zeroed by default, only zero non-Fendt sensors
+      }
       wheelAngleTmp /= steerConfig.wheelAngleCountsPerDegree;
 
       steerSetpoints.wheelAngleRaw = wheelAngleTmp;

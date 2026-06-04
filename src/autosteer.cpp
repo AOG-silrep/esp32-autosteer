@@ -197,7 +197,7 @@ void autosteerWorker100Hz( void* z ) {
           ledcWrite( 1, 0 );
           ledcWrite( 2, 0 );
           digitalWrite( steerConfig.gpioEn, LOW );
-          machine.valveOutput = machine.canbusWasCounts;
+          machine.valveOutput = machine.FendtWasCounts;
           steerSetpoints.pidOutput = pidOutputTmp;
         }
         break;
@@ -326,7 +326,7 @@ void autosteerWorker100Hz( void* z ) {
           ledcWrite( 0, abs( pidOutputTmp ));
           ledcWrite( 1, 0 );
           ledcWrite( 2, 0 );
-          machine.valveOutput = machine.canbusWasCounts - ( uint32_t )( pidOutputTmp * 10 ); // Fendt uses 16 bits, otherwise same as VMC family
+          machine.valveOutput = machine.FendtWasCounts - ( uint32_t )( pidOutputTmp * 10 ); // Fendt uses 16 bits
           steerSetpoints.pidOutput = pidOutputTmp;
         }
         break;

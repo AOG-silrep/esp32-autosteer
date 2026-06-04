@@ -74,7 +74,7 @@ void canFendtSteeringReceiver100Hz( void* z ) {
           if( message.data[0] == 0x05 && message.data[1] == 0x1A && message.data[2] == 0x00 ) {
             machine.steeringEnabled = false;
           } else if( message.data[0] == 0x05 && message.data[1] == 0x0A ) {
-            machine.canbusWasCounts = ((( int8_t )message.data[4] << 8 ) + message.data[5] );
+            machine.FendtWasCounts = ((( int8_t )message.data[4] << 8 ) + message.data[5] );
             machine.lastCanbusWasMillis = millis();
           }
         }
