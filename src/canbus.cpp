@@ -73,6 +73,10 @@ void canFendtSteeringReceiver100Hz( void* z ) {
         if( message.identifier == FendtAutosteer ) { // 0x0CEF2CF0
           if( message.data[0] == 0x05 && message.data[1] == 0x1A && message.data[2] == 0x00 ) {
             machine.steeringEnabled = false;
+            if( steerSetpoints.enabled == true ) {
+              machine.autosteerSafetyLock = true;
+            }
+            machine.disengagedBySteeringWheel = true;
           } else if( message.data[0] == 0x05 && message.data[1] == 0x0A ) {
             machine.FendtWasCounts = ((( int8_t )message.data[4] << 8 ) + message.data[5] );
             machine.lastCanbusWasMillis = millis();
@@ -424,13 +428,21 @@ void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
       }
       if( rxId == engageMessage ){
         if( rxBuf[0] == 0x0F && rxBuf[1] == 0x60 && rxBuf[2] == 0x01 ){
-          machine.steeringEnabled = true;
+          if( machine.steeringEnabled == false ) {
+            machine.steeringEnabled = true;
+            AogToMachineEngagedMismatch = true;
+          }
+          safety.AOGEnableAutosteerTimeout = false;
           canEngageMessage = true;
+          machine.disengagedBySteeringWheel = false;
           machine.disengageInput = false;
         } else if( rxBuf[0] == 0x0F && rxBuf[1] == 0x60 && rxBuf[2] == 0x40 ){
           machine.steeringEnabled = false;
           canEngageMessage = false;
           machine.disengageInput = true;
+          if( steerSetpoints.enabled == true ) {
+            machine.autosteerSafetyLock = true;
+          }
         }
         machine.lastMCP2515CanbusMillis = millis();
       }
