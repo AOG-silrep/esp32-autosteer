@@ -51,7 +51,7 @@ void addWasInputSelection( uint16_t parent ) {
   
 void initESPUI ( void ) {
 
-  labelLoad = ESPUI.addControl( ControlType::Label, "Load:", "", ControlColor::Turquoise );
+  labelLoad = ESPUI.addControl( ControlType::Label, "Status", "", ControlColor::Turquoise );
   labelWheelAngle = ESPUI.addControl( ControlType::Label, "Wheel Angle:", "0°", ControlColor::Emerald );
 
   buttonReset = ESPUI.addControl( ControlType::Button, "If this turns red, you have to", "Apply & Reboot", ControlColor::Emerald, Control::noParent,

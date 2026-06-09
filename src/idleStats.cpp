@@ -59,7 +59,7 @@ void idleStatsWorker( void* z ) {
   str.reserve( 500 );
 
   while( 1 ) {
-    str = "Core0: ";
+    str = "<a href='/diagnostics' style='color:inherit;text-decoration:none;display:block;'>Core0: ";
     str += ( 1000 - idleCtrCore0 ) / 10;
     str += "‰<br/>";
     str += "Core1: ";
@@ -90,6 +90,8 @@ void idleStatsWorker( void* z ) {
       str += heapInfo.largest_free_block / 1024;
       str += "kB";
     }
+
+    str += "</a>";
 
     Control* labelLoadHandle = ESPUI.getControl( labelLoad );
     labelLoadHandle->value = str;
