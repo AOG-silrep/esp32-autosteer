@@ -58,11 +58,7 @@ void idleStatsWorker( void* z ) {
   String str;
   str.reserve( 500 );
 
-  multi_heap_info_t heapInfo;
-
   while( 1 ) {
-    heap_caps_get_info( &heapInfo, MALLOC_CAP_8BIT );
-
     str = "Core0: ";
     str += ( 1000 - idleCtrCore0 ) / 10;
     str += "‰<br/>";
@@ -70,19 +66,30 @@ void idleStatsWorker( void* z ) {
     str += ( 1000 - idleCtrCore1 ) / 10;
     str += "‰<br/>Uptime: ";
     str += millis() / 1000;
-    str += "s<br/>Heap free: ";
-    str += heapInfo.total_free_bytes / 1024;
-    str += "kB (";
-    str += heapInfo.free_blocks;
-    str += "), allocated: ";
-    str += heapInfo.total_allocated_bytes / 1024;
-    str += "kB (";
-    str += heapInfo.allocated_blocks;
-    str += ")<br/>Lowest ever free Heap: ";
-    str += heapInfo.minimum_free_bytes / 1024;
-    str += "kB<br/>Largest free block on Heap: ";
-    str += heapInfo.largest_free_block / 1024;
-    str += "kB";
+    str += "s<br/>";
+
+    if ( xTimerIsTimerActive( saveTimer ) ) {
+      TickType_t remaining = xTimerGetExpiryTime( saveTimer ) - xTaskGetTickCount();
+      str += "Saving in ";
+      str += ( remaining / configTICK_RATE_HZ ) + 1;
+      str += "s...";
+    } else {
+      multi_heap_info_t heapInfo;
+      heap_caps_get_info( &heapInfo, MALLOC_CAP_8BIT );
+      str += "Heap free: ";
+      str += heapInfo.total_free_bytes / 1024;
+      str += "kB (";
+      str += heapInfo.free_blocks;
+      str += "), allocated: ";
+      str += heapInfo.total_allocated_bytes / 1024;
+      str += "kB (";
+      str += heapInfo.allocated_blocks;
+      str += ")<br/>Lowest ever free Heap: ";
+      str += heapInfo.minimum_free_bytes / 1024;
+      str += "kB<br/>Largest free block on Heap: ";
+      str += heapInfo.largest_free_block / 1024;
+      str += "kB";
+    }
 
     Control* labelLoadHandle = ESPUI.getControl( labelLoad );
     labelLoadHandle->value = str;
