@@ -42,14 +42,8 @@ extern time_t lastHydLiftMillis;
 
 extern uint16_t labelLoad;
 extern uint16_t labelWheelAngle;
-extern uint16_t labelSafetyDisableAutosteer;
-extern uint16_t labelSupplyVoltage;
-extern uint16_t labelSteerMotorCurrent;
-extern uint16_t labelSteerEngagedFaults;
-extern uint16_t labelSwitchStates;
 extern uint16_t labelRowSense;
 
-extern uint16_t labelAgOpenGpsAddress;
 extern uint16_t labelStatusOutput;
 extern uint16_t labelStatusCanESP32;
 extern uint16_t labelStatusCanMCP2515;
