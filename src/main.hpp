@@ -101,8 +101,9 @@ struct Machine {
   time_t lastAutosteerMillis = 0; // last time autosteer input changed
   bool workswitchState = false; // current state of workswitch
   uint8_t canbusSteeringState = 0; // machine canbus steering state (receive only)
-  uint16_t valveOutput; // output of the pid controller, after valve specific processing
+  int16_t valveOutput; // output of the pid controller, after valve specific processing
   uint16_t canbusWasCounts; // Wheel Angle Sensor counts from canbus
+  int16_t FendtWasCounts; // Fendt specific WAS counts from canbus, which have a center of 65535-0
   uint16_t handwheelPulseCount; // handwheel encoder counts
   uint16_t DeereDutyCycle; // duty cycle of Deere variable duty PWM disengage sensor
   uint16_t DeereDutyAverage; // average duty cycle of Deere variable duty PWM disengage sensor

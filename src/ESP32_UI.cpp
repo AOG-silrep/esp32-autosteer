@@ -50,7 +50,7 @@ void addWasInputSelection( uint16_t parent ) {
   
 void initESPUI ( void ) {
 
-  labelLoad = ESPUI.addControl( ControlType::Label, "Load:", "", ControlColor::Turquoise );
+  labelLoad = ESPUI.addControl( ControlType::Label, "Status", "", ControlColor::Turquoise );
   labelWheelAngle = ESPUI.addControl( ControlType::Label, "Wheel Angle:", "0°", ControlColor::Emerald );
 
   buttonReset = ESPUI.addControl( ControlType::Button, "If this turns red, you have to", "Apply & Reboot", ControlColor::Emerald, Control::noParent,
@@ -301,7 +301,7 @@ void initESPUI ( void ) {
       }
     }
 
-    {
+    if( steerConfig.wheelAngleInput != SteerConfig::AnalogIn::CanbusFendt ) {
       uint16_t num = ESPUI.addControl( ControlType::Number, "Wheel Angle Sensor Center", String( steerConfig.wheelAnglePositionZero ), ControlColor::Peterriver, tab,
       []( Control * control, int id ) {
         steerConfig.wheelAnglePositionZero = control->value.toInt();
@@ -805,7 +805,7 @@ void initESPUI ( void ) {
 
     ESPUI.addControl( ControlType::Label, "Download the config:", autosteerDownloadHTML, ControlColor::Carrot, tab );
 
-    ESPUI.addControl( ControlType::Label, "Upload the config:", "<form method='POST' action='/upload-config' enctype='multipart/form-data'><input name='f' type='file'><input type='submit'>ESP32 will restart after submitting</form>", ControlColor::Carrot, tab );
+    ESPUI.addControl( ControlType::Label, "Upload the config:", "<form id='ucForm' enctype='multipart/form-data'><input id='ucFile' name='f' type='file'><input type='submit' value='Submit'></form><span id='ucStatus'></span><script>document.getElementById('ucForm').addEventListener('submit',function(e){e.preventDefault();var f=document.getElementById('ucFile').files[0];if(!f)return;var fd=new FormData();fd.append('f',f);document.getElementById('ucStatus').innerText='Uploading...';fetch('/upload-config',{method:'POST',body:fd}).then(function(){var s=document.getElementById('ucStatus');var n=8;function tick(){s.innerText='Rebooting, redirecting in '+n+'s...';if(n-->0)setTimeout(tick,1000);else window.location.href='/';}tick();}).catch(function(){document.getElementById('ucStatus').innerText='Upload failed.';});});</script>", ControlColor::Carrot, tab );
     
     tabConfigurations = tab;
 
@@ -846,7 +846,7 @@ void initESPUI ( void ) {
   
   // upload a file to /upload-config
   ESPUI.WebServer()->on( "/upload-config", HTTP_POST, []( AsyncWebServerRequest * request ) {
-    request->send( 200 );
+    request->send( 200, "text/plain", "OK" );
   }, [tabConfigurations]( AsyncWebServerRequest * request, String filename, size_t index, uint8_t* data, size_t len, bool final ) {
     if( !index ) {
       request->_tempFile = LittleFS.open( "/autosteer.json", "w" );
@@ -862,8 +862,8 @@ void initESPUI ( void ) {
         if( steerConfig.canBusEnabled ){
           twai_stop();
         }
-        delay(10);
-        ESP.restart();
+        xTaskCreate( []( void* ) { vTaskDelay( 500 / portTICK_PERIOD_MS ); ESP.restart(); }, 
+                      "restart", 1024, nullptr, 1, nullptr );
       }
     }
   } );
