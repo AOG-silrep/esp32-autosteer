@@ -15,7 +15,6 @@ uint16_t buttonReset;
 
 uint16_t labelWheelAngleDisplacement;
 
-uint16_t labelAgOpenGpsAddress;
 uint16_t labelStatusOutput;
 uint16_t labelStatusCanESP32;
 uint16_t labelStatusCanMCP2515;

@@ -393,7 +393,6 @@ void diagnosticWorker1Hz( void* z ) {
         }
     }
     
-    Control* labelAgOpenGpsAddressHandle = ESPUI.getControl( labelAgOpenGpsAddress );
     time_t seconds = ( millis() - lastHelloReceivedMillis ) / 1000;
     String str;
     str.reserve( 30 );
