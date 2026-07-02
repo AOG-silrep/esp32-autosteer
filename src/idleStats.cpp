@@ -66,7 +66,9 @@ void idleStatsWorker( void* z ) {
     str += ( 1000 - idleCtrCore1 ) / 10;
     str += "‰<br/>Uptime: ";
     str += millis() / 1000;
-    str += "s<br/>";
+    str += "s<br/>RSSI: ";
+    str += WiFi.RSSI();
+    str += "dBm<br/>";
 
     if ( xTimerIsTimerActive( saveTimer ) ) {
       TickType_t remaining = xTimerGetExpiryTime( saveTimer ) - xTaskGetTickCount();
