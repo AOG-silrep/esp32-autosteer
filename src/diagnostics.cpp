@@ -13,7 +13,7 @@ void diagnosticWorker1Hz( void* z ) {
 
     {
       String str;
-      str.reserve( 30 );
+      str.reserve( 220 );
       str = "\nSpeed: ";
       str += ( float )steerSetpoints.speed;
       if( ( SteerConfig::SpeedUnits )steerConfig.speedUnits == SteerConfig::SpeedUnits::MilesPerHour ) {
@@ -43,7 +43,7 @@ void diagnosticWorker1Hz( void* z ) {
     }
     if( machine.canbusSteeringActive == false ){ // voltage monitoring during legacy steering only
       String str;
-      str.reserve( 30 );
+      str.reserve( 120 );
       str = "\n";
       str += ( uint16_t ) machine.steerSupplyVoltage ;
       str += " counts; ";
@@ -57,7 +57,7 @@ void diagnosticWorker1Hz( void* z ) {
     }
     {
       String str;
-      str.reserve( 30 );
+      str.reserve( 40 );
       str = "\nCurrent: ";
       str += ( uint16_t ) machine.steerMotorCurrent;
       str += "\nOverlimit: ";
@@ -66,7 +66,7 @@ void diagnosticWorker1Hz( void* z ) {
     }
     {
       String str;
-      str.reserve( 30 );
+      str.reserve( 80 );
       str = "\nPlausibility errors: ";
       str += ( uint8_t ) diagnostics.WasPlausibilityErrors;
       str += "\nPower supply shorted to ground: ";
@@ -75,7 +75,7 @@ void diagnosticWorker1Hz( void* z ) {
     }
     {
       String str;
-      str.reserve( 30 );
+      str.reserve( 120 );
       if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::CanbusFendt ){
         str = "Fendt Canbus WAS counts: ";
         str += ( uint16_t )machine.FendtWasCounts;
@@ -140,7 +140,7 @@ void diagnosticWorker1Hz( void* z ) {
     }
     {
       String str;
-      str.reserve( 30 );
+      str.reserve( 160 );
       if( steerConfig.outputType == SteerConfig::OutputType::Canbus13_19Controller ){
         str = "\nCanbus steer state: ";
         time_t elapsed = millis() - machine.lastCanbusSteeringMillis;
@@ -248,7 +248,7 @@ void diagnosticWorker1Hz( void* z ) {
     }
     {
       String str;
-      str.reserve( 30 );
+      str.reserve( 50 );
       str = "\nTool lift ";
       if( hydLift == 0 ){
         str = "disabled ";
@@ -267,7 +267,7 @@ void diagnosticWorker1Hz( void* z ) {
         case SteerConfig::OutputType::SteeringMotorIBT2: {
           Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );
           String str;
-          str.reserve( 30 );
+          str.reserve( 150 );
           str = "IBT2 Motor, SetPoint: ";
           str += ( float )steerSetpoints.requestedSteerAngle;
           str += "°,\ntimeout: ";
@@ -284,7 +284,7 @@ void diagnosticWorker1Hz( void* z ) {
         case SteerConfig::OutputType::SteeringMotorCytron: {
           Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );
           String str;
-          str.reserve( 30 );
+          str.reserve( 150 );
           str = "Cytron Motor, SetPoint: ";
           str += ( float )steerSetpoints.requestedSteerAngle;
           str += "°\ntimeout: ";
@@ -301,7 +301,7 @@ void diagnosticWorker1Hz( void* z ) {
         case SteerConfig::OutputType::HydraulicPwm2Coil: {
           Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );
           String str;
-          str.reserve( 30 );
+          str.reserve( 150 );
           str = "IBT2 Hydraulic PWM 2 Coil, SetPoint: ";
           str += ( float )steerSetpoints.requestedSteerAngle;
           str += "°,\ntimeout: ";
@@ -320,7 +320,7 @@ void diagnosticWorker1Hz( void* z ) {
         case SteerConfig::OutputType::HydraulicDanfoss: {
           Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );
           String str;
-          str.reserve( 30 );
+          str.reserve( 150 );
           str = "IBT2 Hydraulic Danfoss, SetPoint: ";
           str += ( float )steerSetpoints.requestedSteerAngle;
           str += "°,\ntimeout: ";
@@ -337,7 +337,7 @@ void diagnosticWorker1Hz( void* z ) {
         case SteerConfig::OutputType::HydraulicBangBang: {
           Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );
           String str;
-          str.reserve( 30 );
+          str.reserve( 150 );
           str = "IBT2 Hydraulic Bang Bang, SetPoint: ";
           str += ( float )steerSetpoints.requestedSteerAngle;
           str += "°,\ntimeout: ";
@@ -354,7 +354,7 @@ void diagnosticWorker1Hz( void* z ) {
         case SteerConfig::OutputType::Canbus13_19Controller: {
           Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );
           String str;
-          str.reserve( 30 );
+          str.reserve( 150 );
           str = "Canbus 13/19 Controller, SetPoint: ";
           str += ( float )steerSetpoints.requestedSteerAngle;
           str += "°,\ntimeout: ";
@@ -371,7 +371,7 @@ void diagnosticWorker1Hz( void* z ) {
         case SteerConfig::OutputType::CanbusF0_240Controller: {
           Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );
           String str;
-          str.reserve( 30 );
+          str.reserve( 150 );
           str = "Canbus F0/240 Controller, SetPoint: ";
           str += ( float )steerSetpoints.requestedSteerAngle;
           str += "°,\ntimeout: ";
@@ -395,7 +395,7 @@ void diagnosticWorker1Hz( void* z ) {
     
     time_t seconds = ( millis() - lastHelloReceivedMillis ) / 1000;
     String str;
-    str.reserve( 30 );
+    str.reserve( 150 );
     str = "\nIP Address ";
     str += ipDestination.toString();
     str += " ";

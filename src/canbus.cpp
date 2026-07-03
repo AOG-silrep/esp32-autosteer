@@ -274,7 +274,7 @@ void canReceiver10Hz( void* z ) {
     if( loopTimeToWaitTo < millis() ) {
 
       String str;
-      str.reserve( 200 );
+      str.reserve( 1400 );
 
       str = "<table style='margin:auto;'><tr><td style='text-align:left; padding: 0px 5px;'>Wheel-based Speed:</td><td style='text-align:left; padding: 0px 5px;'>";
       str += String( steerCanData.speed );
