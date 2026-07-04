@@ -68,9 +68,9 @@ void diagnosticWorker1Hz( void* z ) {
       String str;
       str.reserve( 80 );
       str = "\nPlausibility errors: ";
-      str += ( uint8_t ) diagnostics.WasPlausibilityErrors;
+      str += diagnostics.WasPlausibilityErrors;
       str += "\nPower supply shorted to ground: ";
-      str += ( uint8_t ) diagnostics.WasPositiveSupplyShortedToGround;
+      str += diagnostics.WasPositiveSupplyShortedToGround;
       diagnosticsDisplay.wheelAngleSensor = str;
     }
     {
@@ -442,7 +442,7 @@ void initDiagnostics() {
   String str;
   str.reserve( 30 );
   str = "\nNumber of faults: ";
-  str += ( int8_t ) diagnostics.steerEnabledWithNoPower;
+  str += diagnostics.steerEnabledWithNoPower;
   str += "\nFault active since startup: No";
   diagnosticsDisplay.steerEngagedFaults = str;
 

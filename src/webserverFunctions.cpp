@@ -127,7 +127,7 @@ void initWebServerFunctions( void ) {
     String str;
     str.reserve( 30 );
     str = "\nNumber of faults: ";
-    str += ( int8_t ) diagnostics.steerEnabledWithNoPower;
+    str += diagnostics.steerEnabledWithNoPower;
     str += "\nFault active since startup: No";
     diagnosticsDisplay.steerEngagedFaults = str;
     request->send(200, "text/plain", "Reset done");

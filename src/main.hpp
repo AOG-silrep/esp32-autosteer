@@ -61,11 +61,11 @@ extern AsyncUDP udpHardwareMessage;
 struct Diagnostics {
   double steerSupplyVoltageMin;
   double steerSupplyVoltageMax;
-  int8_t steerEnabledWithNoPower;
-  int8_t fuse2Shorted;
-  uint8_t WasPositiveSupplyShortedToGround;
-  uint8_t WasPlausibilityErrors;
-  uint8_t UDPTimeout; // how many times AgOpenGPS steering UDP timed out
+  uint16_t steerEnabledWithNoPower;
+  uint16_t fuse2Shorted;
+  uint16_t WasPositiveSupplyShortedToGround;
+  uint16_t WasPlausibilityErrors;
+  uint16_t UDPTimeout; // how many times AgOpenGPS steering UDP timed out
 };
 extern Diagnostics diagnostics;
 
