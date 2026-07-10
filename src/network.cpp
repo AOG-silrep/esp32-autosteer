@@ -61,8 +61,7 @@ void WiFiStationDisconnected( WiFiEvent_t event, WiFiEventInfo_t info ){
 }
 
 void WiFiStationConnected( WiFiEvent_t event, WiFiEventInfo_t info ){
-  WiFi.config( INADDR_NONE, INADDR_NONE, INADDR_NONE );
-  WiFi.setHostname( steerConfig.hostname );
+    //WiFi.setHostname( steerConfig.hostname );
 }
 
 void WiFiAPStaConnected( WiFiEvent_t event, WiFiEventInfo_t info ){
@@ -74,6 +73,7 @@ void WiFiAPStaConnected( WiFiEvent_t event, WiFiEventInfo_t info ){
 
 void initWiFi( void ){
   delay( 50 );
+  WiFi.setHostname( steerConfig.hostname );
   WiFi.config( INADDR_NONE, INADDR_NONE, INADDR_NONE );
   delay( 50 );
   WiFi.onEvent( WiFiStationConnected, ARDUINO_EVENT_WIFI_STA_CONNECTED );
@@ -82,6 +82,7 @@ void initWiFi( void ){
   WiFi.onEvent( WiFiAPStaConnected, ARDUINO_EVENT_WIFI_AP_STACONNECTED );
   // try to connect to existing network
   WiFi.begin( steerConfig.ssid, steerConfig.password );
+  WiFi.setSleep( false );   // disable modem power save
   WiFi.setAutoReconnect( false );
   Serial.print( "\n\nTry to connect to existing network \"" );
   Serial.print( steerConfig.ssid );
