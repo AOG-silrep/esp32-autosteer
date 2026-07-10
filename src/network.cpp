@@ -61,7 +61,7 @@ void WiFiStationDisconnected( WiFiEvent_t event, WiFiEventInfo_t info ){
 }
 
 void WiFiStationConnected( WiFiEvent_t event, WiFiEventInfo_t info ){
-    //WiFi.setHostname( steerConfig.hostname );
+  digitalWrite( steerConfig.apModePin, HIGH );
 }
 
 void WiFiAPStaConnected( WiFiEvent_t event, WiFiEventInfo_t info ){
@@ -128,5 +128,7 @@ void initWiFi( void ){
           Serial.print( "." );
       }
       delay( 25 );
+    } else {
+      digitalWrite( steerConfig.apModePin, HIGH );
     }
 }
