@@ -39,6 +39,11 @@ volatile uint32_t rtcRefCpuMHzCurrent = 0;
 volatile uint32_t rtcRefCpuMHzHigh = 0;
 volatile uint32_t rtcRefCpuMHzLow = UINT32_MAX;
 
+constexpr uint32_t rtcRefCpuMHzWindowSamples = 300;  // 5 minutes at the 1s sample interval below
+uint16_t rtcRefCpuMHzWindow[rtcRefCpuMHzWindowSamples];
+uint32_t rtcRefCpuMHzWindowIdx = 0;
+uint32_t rtcRefCpuMHzWindowCount = 0;
+
 uint32_t xtalFreqMHz = 40;
 
 bool core0IdleWorker( void ) {
@@ -102,11 +107,9 @@ uint32_t IRAM_ATTR rtcCalSampleCpuMHz( uint32_t slowclkCycles, uint32_t xtalMHz 
 }
 
 void rtcRefCpuCheckWorker( void* z ) {
-  constexpr TickType_t xFrequency = 1000;       // 1s sample interval
-  constexpr uint32_t rtcCalCycles = 100;        // ~1.5-3ms busy-wait per sample, fine at priority 1
-  constexpr uint32_t windowResetSamples = 300;  // 5 minutes at 1Hz
+  constexpr TickType_t xFrequency = 1000;  // 1s sample interval
+  constexpr uint32_t rtcCalCycles = 100;   // ~1.5-3ms busy-wait per sample, fine at priority 1
   TickType_t xLastWakeTime = xTaskGetTickCount();
-  uint32_t sampleCount = 0;
 
   while( 1 ) {
     uint32_t mhz = rtcCalSampleCpuMHz( rtcCalCycles, xtalFreqMHz );
@@ -114,15 +117,26 @@ void rtcRefCpuCheckWorker( void* z ) {
     if( mhz != 0 ) {
       rtcRefCpuMHzCurrent = mhz;
 
-      if( mhz > rtcRefCpuMHzHigh ) { rtcRefCpuMHzHigh = mhz; }
+      rtcRefCpuMHzWindow[rtcRefCpuMHzWindowIdx] = ( uint16_t ) mhz;
+      rtcRefCpuMHzWindowIdx = ( rtcRefCpuMHzWindowIdx + 1 ) % rtcRefCpuMHzWindowSamples;
 
-      if( mhz < rtcRefCpuMHzLow )  { rtcRefCpuMHzLow  = mhz; }
-    }
+      if( rtcRefCpuMHzWindowCount < rtcRefCpuMHzWindowSamples ) { rtcRefCpuMHzWindowCount++; }
 
-    if( ++sampleCount >= windowResetSamples ) {
-      sampleCount = 0;
-      rtcRefCpuMHzHigh = rtcRefCpuMHzCurrent;
-      rtcRefCpuMHzLow  = rtcRefCpuMHzCurrent;
+      // Recompute over the trailing window each sample so Hi/Lo are a true rolling 5-minute
+      // range rather than a periodic reset; 300 comparisons at 1Hz is negligible on this chip.
+      uint32_t high = 0;
+      uint32_t low = UINT32_MAX;
+
+      for( uint32_t i = 0; i < rtcRefCpuMHzWindowCount; i++ ) {
+        uint16_t v = rtcRefCpuMHzWindow[i];
+
+        if( v > high ) { high = v; }
+
+        if( v < low )  { low  = v; }
+      }
+
+      rtcRefCpuMHzHigh = high;
+      rtcRefCpuMHzLow  = low;
     }
 
     vTaskDelayUntil( &xLastWakeTime, xFrequency );
