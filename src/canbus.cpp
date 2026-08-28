@@ -566,10 +566,10 @@ void canbusStateMessage( void* z ){
 void canComplementSwitchWorker10Hz( void* z ) {
   constexpr TickType_t xFrequency = 100;
   TickType_t xLastWakeTime = xTaskGetTickCount();
-  bool previousState;
+  bool previousState = digitalRead(( uint8_t )steerConfig.gpioSteerswitch );
 
   for( ;; ) {
-   
+
     bool state = digitalRead(( uint8_t )steerConfig.gpioSteerswitch );
     if( previousState != state ){
       if( state == steerConfig.steerswitchActiveLow ){

@@ -492,13 +492,13 @@ void autosteerWorker100Hz( void* z ) {
 void autosteerSwitchesWorker1000Hz( void* z ) {
   constexpr TickType_t xFrequency = 1;
   TickType_t xLastWakeTime = xTaskGetTickCount();
-  bool previousState;
+  bool previousState = digitalRead( ( uint8_t )steerConfig.gpioSteerswitch );
   bool switchState;
-  bool disengagePrevState;
-  int32_t dutyAverage;
-  time_t lastSwitchChangeMillis;
-  time_t disengageActivityMillis;
-  uint32_t deereDutyMicrosTimeout;
+  bool disengagePrevState = digitalRead( steerConfig.gpioDisengage );
+  int32_t dutyAverage = 0;
+  time_t lastSwitchChangeMillis = millis();
+  time_t disengageActivityMillis = millis();
+  uint32_t deereDutyMicrosTimeout = esp_timer_get_time();
 
   switchState = digitalRead( ( uint8_t )steerConfig.gpioSteerswitch ); // initialize switch state on startup
 
