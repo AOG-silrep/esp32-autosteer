@@ -250,5 +250,10 @@ void initSensors() {
 
   pinMode( steerConfig.gpioWasSupplyDetectionPin, INPUT );
 
+  if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::JDVariableDuty ) {
+    pinMode( steerConfig.gpioWASPulse, INPUT );
+    attachInterrupt( steerConfig.gpioWASPulse, DeereVariableDutyWasIsr, CHANGE );
+  }
+
   xTaskCreate( sensorWorker100HzPoller, "sensorWorker100HzPoller", 4096, NULL, 6, NULL );
 }
