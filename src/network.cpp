@@ -8,6 +8,43 @@ IPAddress softApIP( 192, 168, 1, 1 );
 String apName;
 bool WiFiWasConnected = false;
 
+enum class WifiLedState : uint8_t {
+  Connecting,   // fast blink
+  AccessPoint,  // slow blink
+  Connected     // solid
+};
+volatile WifiLedState wifiLedState = WifiLedState::Connecting;
+
+constexpr uint16_t wifiLedTickMs     = 100;
+constexpr uint16_t wifiLedFastHalfMs = 100;
+constexpr uint16_t wifiLedSlowHalfMs = 500;
+
+void wifiLedWorker10HZ( void* z ) {
+  uint16_t elapsed = 0;
+  bool ledOn = false;
+
+  for( ;; ) {
+    WifiLedState state = wifiLedState;
+
+    if( state == WifiLedState::Connected ) {
+      ledOn = true;
+      elapsed = 0;
+    } else {
+      elapsed += wifiLedTickMs;
+      uint16_t halfPeriod = ( state == WifiLedState::Connecting ) ? wifiLedFastHalfMs
+                                                                 : wifiLedSlowHalfMs;
+      if( elapsed >= halfPeriod ) {
+        elapsed = 0;
+        ledOn = !ledOn;
+      }
+    }
+
+    digitalWrite( steerConfig.apModePin, ledOn );
+    vTaskDelay( pdMS_TO_TICKS( wifiLedTickMs ) );
+  }
+  vTaskDelete( NULL );
+}
+
 void WiFiStationGotIP( WiFiEvent_t event, WiFiEventInfo_t info ){
   IPAddress myIP = WiFi.localIP();
   if( myIP == IPAddress( 0, 0, 0, 0 )) {
@@ -41,12 +78,12 @@ void WiFiStationGotIP( WiFiEvent_t event, WiFiEventInfo_t info ){
         WiFi.softAPdisconnect( true );
         WiFi.mode( WIFI_MODE_STA );
     }
-    digitalWrite( steerConfig.apModePin, HIGH );
+    wifiLedState = WifiLedState::Connected;
     WiFiWasConnected = true;
 }
 
 void WiFiStationDisconnected( WiFiEvent_t event, WiFiEventInfo_t info ){
-    digitalWrite( steerConfig.apModePin, LOW );
+    wifiLedState = ( WiFi.getMode() & WIFI_MODE_AP ) ? WifiLedState::AccessPoint : WifiLedState::Connecting;
     if( WiFiWasConnected == true ){
       WiFi.disconnect( true );
       if( !WiFi.config( INADDR_NONE, INADDR_NONE, INADDR_NONE )){
@@ -60,10 +97,6 @@ void WiFiStationDisconnected( WiFiEvent_t event, WiFiEventInfo_t info ){
     }
 }
 
-void WiFiStationConnected( WiFiEvent_t event, WiFiEventInfo_t info ){
-  digitalWrite( steerConfig.apModePin, HIGH );
-}
-
 void WiFiAPStaConnected( WiFiEvent_t event, WiFiEventInfo_t info ){
     Serial.println( "Switching off station mode, AP only" );
     WiFi.disconnect( true );
@@ -72,11 +105,11 @@ void WiFiAPStaConnected( WiFiEvent_t event, WiFiEventInfo_t info ){
 }
 
 void initWiFi( void ){
+  xTaskCreate( wifiLedWorker10HZ, "wifiLedWorker10HZ", 1024, NULL, 1, NULL );
   delay( 50 );
   WiFi.setHostname( steerConfig.hostname );
   WiFi.config( INADDR_NONE, INADDR_NONE, INADDR_NONE );
   delay( 50 );
-  WiFi.onEvent( WiFiStationConnected, ARDUINO_EVENT_WIFI_STA_CONNECTED );
   WiFi.onEvent( WiFiStationDisconnected, ARDUINO_EVENT_WIFI_STA_DISCONNECTED );
   WiFi.onEvent( WiFiStationGotIP, ARDUINO_EVENT_WIFI_STA_GOT_IP );
   WiFi.onEvent( WiFiAPStaConnected, ARDUINO_EVENT_WIFI_AP_STACONNECTED );
@@ -96,15 +129,12 @@ void initWiFi( void ){
     delay( 500 );
     Serial.print( "." );
     timeout--;
-    digitalWrite( steerConfig.apModePin, ! digitalRead( steerConfig.apModePin ));
   } while( timeout && WiFi.status() != WL_CONNECTED );
   // not connected -> create hotspot
   if( WiFi.status() != WL_CONNECTED ) {
       if( WiFi.disconnect( true )){
         Serial.println( "Wifi reset successful" );
       } else Serial.println( "Wifi reset failed" );
-
-      digitalWrite( steerConfig.apModePin, LOW );
 
       WiFi.begin(); // WiFi needs to be running to retrieve the MAC address
       apName = String( "Steer module " );
@@ -119,6 +149,7 @@ void initWiFi( void ){
         if( WiFi.softAPConfig( softApIP, softApIP, IPAddress( 255, 255, 255, 0 ))){
           delay( 25 );
           WiFi.softAP( apName.c_str() );
+          wifiLedState = WifiLedState::AccessPoint;
         } else Serial.println( "Wifi softAPConfig failed" );
       } else Serial.println( "Wifi APSTA mode failed" );
 
@@ -131,6 +162,6 @@ void initWiFi( void ){
       }
       delay( 25 );
     } else {
-      digitalWrite( steerConfig.apModePin, HIGH );
+      wifiLedState = WifiLedState::Connected;
     }
 }
