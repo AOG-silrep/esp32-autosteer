@@ -237,17 +237,17 @@ void parseJsonToSteerConfig( json& j, SteerConfig& config ) {
       {
         std::string str = j.value( "/wifi/ssid"_json_pointer, steerConfigDefaults.ssid );
         memset( config.ssid, 0, sizeof( config.ssid ) );
-        memcpy( config.ssid, str.c_str(), str.size() );
+        memcpy( config.ssid, str.c_str(), min( str.size(), sizeof( config.ssid ) - 1 ) );
       }
       {
         std::string str = j.value( "/wifi/password"_json_pointer, steerConfigDefaults.password );
         memset( config.password, 0, sizeof( config.password ) );
-        memcpy( config.password, str.c_str(), str.size() );
+        memcpy( config.password, str.c_str(), min( str.size(), sizeof( config.password ) - 1 ) );
       }
       {
         std::string str = j.value( "/wifi/hostname"_json_pointer, steerConfigDefaults.hostname );
         memset( config.hostname, 0, sizeof( config.hostname ) );
-        memcpy( config.hostname, str.c_str(), str.size() );
+        memcpy( config.hostname, str.c_str(), min( str.size(), sizeof( config.hostname ) - 1 ) );
       }
       config.retainWifiSettings = j.value( "/wifi/retainSettings"_json_pointer, steerConfigDefaults.retainWifiSettings );
 
