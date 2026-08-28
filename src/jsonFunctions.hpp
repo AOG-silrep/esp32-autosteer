@@ -44,6 +44,3 @@ extern json parseDiagnosticsToJson( const Diagnostics& diagnostics );
 
 extern void parseJsonToSteerConfig( json& json, SteerConfig& config );
 extern json parseSteerConfigToJson( const SteerConfig& config );
-
-extern void sendStateTransmission( uint16_t channelId, bool state );
-extern void sendNumberTransmission( uint16_t channelId, double number );
