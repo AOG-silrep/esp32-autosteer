@@ -143,7 +143,7 @@ void canReceiver10Hz( void* z ) {
 
              // Wheel-based Speed and Distance
           case j1939PgnWBSD: {
-            steerCanData.speed = ( message.data[1] << 8 | message.data[0] ) / 1000 * 3.6;
+            steerCanData.speed = ( message.data[1] << 8 | message.data[0] ) * 3.6f / 1000.0f;
           }
           break;
 
