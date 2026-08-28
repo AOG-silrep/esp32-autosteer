@@ -39,7 +39,10 @@ void diagnosticWorker1Hz( void* z ) {
         str += " seconds ago";
 
       } else str += "No";
-      diagnosticsDisplay.safetyDisableAutosteer = str;
+      if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+        diagnosticsDisplay.safetyDisableAutosteer = str;
+        xSemaphoreGive( diagnosticsDisplayMutex );
+      }
     }
     if( machine.canbusSteeringActive == false ){ // voltage monitoring during legacy steering only
       String str;
@@ -53,7 +56,10 @@ void diagnosticWorker1Hz( void* z ) {
       str += " volts min while steering\n";
       str += ( double ) ( ( double ) ( diagnostics.steerSupplyVoltageMax * 4.54 ) / 913 );
       str += " volts max while steering";
-      diagnosticsDisplay.supplyVoltage = str;
+      if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+        diagnosticsDisplay.supplyVoltage = str;
+        xSemaphoreGive( diagnosticsDisplayMutex );
+      }
     }
     {
       String str;
@@ -62,7 +68,10 @@ void diagnosticWorker1Hz( void* z ) {
       str += ( uint16_t ) machine.steerMotorCurrent;
       str += "\nOverlimit: ";
       str += ( machine.steerMotorCurrent > steerConfig.maxSteerCurrent ) ? "Yes" : "No";
-      diagnosticsDisplay.steerMotorCurrent = str;
+      if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+        diagnosticsDisplay.steerMotorCurrent = str;
+        xSemaphoreGive( diagnosticsDisplayMutex );
+      }
     }
     {
       String str;
@@ -71,7 +80,10 @@ void diagnosticWorker1Hz( void* z ) {
       str += diagnostics.WasPlausibilityErrors;
       str += "\nPower supply shorted to ground: ";
       str += diagnostics.WasPositiveSupplyShortedToGround;
-      diagnosticsDisplay.wheelAngleSensor = str;
+      if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+        diagnosticsDisplay.wheelAngleSensor = str;
+        xSemaphoreGive( diagnosticsDisplayMutex );
+      }
     }
     {
       String str;
@@ -244,7 +256,10 @@ void diagnosticWorker1Hz( void* z ) {
           str += " seconds ago";
         }
       }
-      diagnosticsDisplay.switchStates = str;
+      if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+        diagnosticsDisplay.switchStates = str;
+        xSemaphoreGive( diagnosticsDisplayMutex );
+      }
     }
     {
       String str;
@@ -260,7 +275,10 @@ void diagnosticWorker1Hz( void* z ) {
       time_t elapsed = ( millis() - lastHydLiftMillis ) / 1000;
       str += ( time_t )elapsed;
       str += " seconds ago";
-      diagnosticsDisplay.implementStates = str;
+      if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+        diagnosticsDisplay.implementStates = str;
+        xSemaphoreGive( diagnosticsDisplayMutex );
+      }
     }
     {
       switch( steerConfig.outputType ) {
@@ -410,8 +428,11 @@ void diagnosticWorker1Hz( void* z ) {
       str += ( String )( steerSetpoints.lastPacketReceived - steerSetpoints.previousPacketReceived );
       str += " millis apart";
     }
-    diagnosticsDisplay.agOpenGpsAddress = str;
-    
+    if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+      diagnosticsDisplay.agOpenGpsAddress = str;
+      xSemaphoreGive( diagnosticsDisplayMutex );
+    }
+
     Control* labelRowSenseHandle = ESPUI.getControl( labelRowSense );
     if( steerConfig.enableRowSense ){
       str = "Voltage: ";
@@ -444,7 +465,10 @@ void initDiagnostics() {
   str = "\nNumber of faults: ";
   str += diagnostics.steerEnabledWithNoPower;
   str += "\nFault active since startup: No";
-  diagnosticsDisplay.steerEngagedFaults = str;
+  if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+    diagnosticsDisplay.steerEngagedFaults = str;
+    xSemaphoreGive( diagnosticsDisplayMutex );
+  }
 
   xTaskCreate( diagnosticWorker1Hz, "diagnosticWorker", 3096, NULL, 3, NULL );
 }

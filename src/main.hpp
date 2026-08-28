@@ -49,6 +49,7 @@ extern uint16_t manualValveSwitcher;
 extern uint16_t manualValvePWMWidget;
 
 extern SemaphoreHandle_t i2cMutex;
+extern SemaphoreHandle_t diagnosticsDisplayMutex;
 extern TimerHandle_t saveTimer;
 extern TaskHandle_t canReceiverHandle;
 extern TaskHandle_t canSenderHandle;

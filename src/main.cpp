@@ -47,6 +47,7 @@ Safety safety;
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 SemaphoreHandle_t i2cMutex;
+SemaphoreHandle_t diagnosticsDisplayMutex;
 TimerHandle_t saveTimer;
 bool saveConfigRequested = false;
 
@@ -100,6 +101,7 @@ void setup( void ) {
   Serial.println( wifiIP );
 
   i2cMutex = xSemaphoreCreateMutex();
+  diagnosticsDisplayMutex = xSemaphoreCreateMutex();
   saveTimer = xTimerCreate( "SaveTimer", pdMS_TO_TICKS( 10000 ), pdFALSE, NULL, saveTimerCallback ); // save after 10 seconds of inactivity
 
   if( ( SteerConfig::OutputType ) steerConfig.outputType >= SteerConfig::OutputType::Canbus13_19Controller ||

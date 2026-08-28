@@ -109,7 +109,10 @@ void autosteerWorker100Hz( void* z ) {
           str = "\nNumber of faults: ";
           str += diagnostics.steerEnabledWithNoPower;
           str += "\nFault active since startup: Yes";
-          diagnosticsDisplay.steerEngagedFaults = str;
+          if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+            diagnosticsDisplay.steerEngagedFaults = str;
+            xSemaphoreGive( diagnosticsDisplayMutex );
+          }
           saveDiagnostics();
         }
       }
@@ -860,9 +863,12 @@ void initAutosteer() {
     String str;
     str.reserve( 30 );
     str = "\nN/A in CANbus steering";
-    
-    diagnosticsDisplay.steerEngagedFaults = str;
-    diagnosticsDisplay.supplyVoltage = str;
+
+    if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+      diagnosticsDisplay.steerEngagedFaults = str;
+      diagnosticsDisplay.supplyVoltage = str;
+      xSemaphoreGive( diagnosticsDisplayMutex );
+    }
   }
 
   pinMode( steerConfig.gpioWorkswitch, INPUT_PULLUP );

@@ -94,15 +94,23 @@ void initWebServerFunctions( void ) {
   });
 
   ESPUI.WebServer()->on("/diagnosticData", HTTP_GET, [](AsyncWebServerRequest *request){
+    DiagnosticsDisplay snapshot;
+    if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 100 )) != pdTRUE ) {
+      request->send( 503, "text/plain", "Diagnostics busy" );
+      return;
+    }
+    snapshot = diagnosticsDisplay; // copy under the lock, escape and serialize outside it
+    xSemaphoreGive( diagnosticsDisplayMutex );
+
     String json = "{";
-    json += "\"agOpenGpsAddress\":\"" + escapeJsonString( diagnosticsDisplay.agOpenGpsAddress ) + "\",";
-    json += "\"safetyDisableAutosteer\":\"" + escapeJsonString( diagnosticsDisplay.safetyDisableAutosteer ) + "\",";
-    json += "\"supplyVoltage\":\"" + escapeJsonString( diagnosticsDisplay.supplyVoltage ) + "\",";
-    json += "\"steerMotorCurrent\":\"" + escapeJsonString( diagnosticsDisplay.steerMotorCurrent ) + "\",";
-    json += "\"steerEngagedFaults\":\"" + escapeJsonString( diagnosticsDisplay.steerEngagedFaults ) + "\",";
-    json += "\"wheelAngleSensor\":\"" + escapeJsonString( diagnosticsDisplay.wheelAngleSensor ) + "\",";
-    json += "\"switchStates\":\"" + escapeJsonString( diagnosticsDisplay.switchStates ) + "\",";
-    json += "\"implementStates\":\"" + escapeJsonString( diagnosticsDisplay.implementStates ) + "\"";
+    json += "\"agOpenGpsAddress\":\"" + escapeJsonString( snapshot.agOpenGpsAddress ) + "\",";
+    json += "\"safetyDisableAutosteer\":\"" + escapeJsonString( snapshot.safetyDisableAutosteer ) + "\",";
+    json += "\"supplyVoltage\":\"" + escapeJsonString( snapshot.supplyVoltage ) + "\",";
+    json += "\"steerMotorCurrent\":\"" + escapeJsonString( snapshot.steerMotorCurrent ) + "\",";
+    json += "\"steerEngagedFaults\":\"" + escapeJsonString( snapshot.steerEngagedFaults ) + "\",";
+    json += "\"wheelAngleSensor\":\"" + escapeJsonString( snapshot.wheelAngleSensor ) + "\",";
+    json += "\"switchStates\":\"" + escapeJsonString( snapshot.switchStates ) + "\",";
+    json += "\"implementStates\":\"" + escapeJsonString( snapshot.implementStates ) + "\"";
     json += "}";
     request->send(200, "application/json", json);
   });
@@ -122,7 +130,10 @@ void initWebServerFunctions( void ) {
     str = "\nNumber of faults: ";
     str += diagnostics.steerEnabledWithNoPower;
     str += "\nFault active since startup: No";
-    diagnosticsDisplay.steerEngagedFaults = str;
+    if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+      diagnosticsDisplay.steerEngagedFaults = str;
+      xSemaphoreGive( diagnosticsDisplayMutex );
+    }
     request->send(200, "text/plain", "Reset done");
   });
 }
