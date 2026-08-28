@@ -775,6 +775,7 @@ void initAutosteer() {
             lastHelloReceivedMillis = millis();
           }
         }
+        break;
 
         default:
           break;
