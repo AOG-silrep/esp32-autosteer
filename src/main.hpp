@@ -33,8 +33,6 @@
 
 #include <Wire.h>
 
-#include "average.hpp"
-
 extern bool AogToMachineEngagedMismatch;
 extern int8_t ditherAmount; // variable gets reset upon user changing dither
 extern uint8_t hydLift;

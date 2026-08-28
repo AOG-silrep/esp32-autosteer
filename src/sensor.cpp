@@ -29,9 +29,6 @@
 #include "main.hpp"
 #include "jsonFunctions.hpp"
 
-#include "average.hpp"
-#include "ringbuffer.hpp"
-
 Adafruit_ADS1115 ads = Adafruit_ADS1115( 0x48 );
 
 bool WAS_Error = true; // true until WAS angle calculated on startup
