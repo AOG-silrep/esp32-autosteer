@@ -266,8 +266,6 @@ void initESPUI ( void ) {
         steerConfig.wheelAngleInput = ( SteerConfig::AnalogIn )control->value.toInt();
         if( steerConfig.wheelAngleInput >= SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
           steerConfig.wheelAngleSensorType = SteerConfig::WheelAngleSensorType::WheelAngle; // arm linkage not applicable for Canbus
-        } else if( steerConfig.wheelAngleInput >= SteerConfig::AnalogIn::CanbusFendt ){
-          steerConfig.wheelAngleSensorType = SteerConfig::WheelAngleSensorType::WheelAngle;
         }
         setResetButtonToRed();
       } );
