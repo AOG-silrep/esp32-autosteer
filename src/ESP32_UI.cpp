@@ -644,17 +644,14 @@ void initESPUI ( void ) {
     {
       uint16_t num = ESPUI.addControl( ControlType::Number, "Maximum PWM", String( steerConfig.steeringPidMaxPwm ), ControlColor::Peterriver, tab,
       []( Control * control, int id ) {
-        steerConfig.steeringPidMaxPwm = control->value.toInt();
+        int rawValue = control->value.toInt();
+        int value = constrain( rawValue, 0, 255 );
+        if( steerConfig.outputType == SteerConfig::OutputType::HydraulicDanfoss && value > 191 ){
+          value = 191;
+        }
+        steerConfig.steeringPidMaxPwm = value;
         saveConfigAfterDelay();
-        if ( steerConfig.steeringPidMaxPwm > 255 ){
-          steerConfig.steeringPidMaxPwm = 255;
-        }
-        if( steerConfig.outputType == SteerConfig::OutputType::HydraulicDanfoss && steerConfig.steeringPidMaxPwm > 191 ){
-          steerConfig.steeringPidMaxPwm = 191;
-          ESPUI.updateText( id, ( String )steerConfig.steeringPidMaxPwm );
-        }
-        else if ( steerConfig.steeringPidMaxPwm > 255 ){
-          steerConfig.steeringPidMaxPwm = 255;
+        if( value != rawValue ){
           ESPUI.updateText( id, ( String )steerConfig.steeringPidMaxPwm );
         }
       } );
