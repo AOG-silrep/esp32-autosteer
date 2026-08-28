@@ -31,13 +31,30 @@ static String escapeJsonString( const String & input ) {
   return escaped;
 }
 
+static String escapeHtmlString( const String & input ) {
+  String escaped;
+  escaped.reserve( input.length() * 2 );
+  for( size_t i = 0; i < input.length(); ++i ) {
+    char c = input[ i ];
+    switch( c ) {
+      case '&': escaped += "&amp;"; break;
+      case '<': escaped += "&lt;"; break;
+      case '>': escaped += "&gt;"; break;
+      case '"': escaped += "&quot;"; break;
+      case '\'': escaped += "&#39;"; break;
+      default: escaped += c; break;
+    }
+  }
+  return escaped;
+}
+
 void initWebServerFunctions( void ) {
   ESPUI.WebServer()->on("/diagnostics", HTTP_GET, [](AsyncWebServerRequest *request){
     String html = R"html(
       <!DOCTYPE html>
       <html>
       <head>
-      <title>Diagnostics</title>
+      <title>Diagnostics :: %HOSTNAME%</title>
       <link rel="stylesheet" href="/css/normalize.css">
       <link rel="stylesheet" href="/css/style.css">
       <script>
@@ -77,6 +94,7 @@ void initWebServerFunctions( void ) {
       <body>
       <div class="container">
       <h1>Diagnostics</h1>
+      <p><strong>Device:</strong> %HOSTNAME%</p>
       <p><strong>AgOpenGPS communication:</strong> <span id="agOpenGps"></span></p>
       <p><strong>Safety disable autosteer:</strong> <span id="safety"></span></p>
       <p><strong>Steer valve supply voltage:</strong> <span id="voltage"></span></p>
@@ -90,6 +108,7 @@ void initWebServerFunctions( void ) {
       </body>
       </html>
       )html";
+    html.replace( "%HOSTNAME%", escapeHtmlString( String( steerConfig.hostname ) ) );
     request->send(200, "text/html", html);
   });
 
