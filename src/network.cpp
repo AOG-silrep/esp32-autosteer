@@ -123,9 +123,11 @@ void initWiFi( void ){
       } else Serial.println( "Wifi APSTA mode failed" );
 
       WiFi.begin( steerConfig.ssid, steerConfig.password );
-      while( !SYSTEM_EVENT_AP_START ){ // wait until AP has started
+      uint8_t apTimeout = 50; // 5.0s timeout
+      while( apTimeout && WiFi.softAPIP() == IPAddress( 0, 0, 0, 0 )){ // wait until AP has started
           delay( 100 );
           Serial.print( "." );
+          apTimeout--;
       }
       delay( 25 );
     } else {
