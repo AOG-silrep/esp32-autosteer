@@ -877,9 +877,7 @@ void manualValveCallback(Control *sender, int type) {
   } else {
     steerConfig.manualPWM = 0;
   }
-  if( steerConfig.manualSteerState == true ){
-    ESPUI.updateNumber( manualValvePWMWidget, steerConfig.manualPWM );
-  }
+  ESPUI.updateNumber( manualValvePWMWidget, steerConfig.manualPWM );
 }
 
 void manualValvePWMCallback(Control *sender, int type) {
