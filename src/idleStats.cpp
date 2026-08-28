@@ -200,8 +200,6 @@ void idleStatsWorker( void* z ) {
     idleCtrCore0 = 0;
     idleCtrCore1 = 0;
 
-//   heap_caps_print_heap_info(MALLOC_CAP_8BIT);
-
     vTaskDelayUntil( &xLastWakeTime, xFrequency );
   }
 }

@@ -290,10 +290,6 @@ void initESPUI ( void ) {
         } );
         ESPUI.addControl( ControlType::Option, "6.144V (2/3x gain)", "0", ControlColor::Alizarin, sel );
         ESPUI.addControl( ControlType::Option, "4.096V (1x gain)", "512", ControlColor::Alizarin, sel );
-        //ESPUI.addControl( ControlType::Option, "2.048V (2x gain)", "1024", ControlColor::Alizarin, sel );
-        //ESPUI.addControl( ControlType::Option, "1.024V (4x gain)", "1536", ControlColor::Alizarin, sel );
-        //ESPUI.addControl( ControlType::Option, "0.512V (8x gain)", "2048", ControlColor::Alizarin, sel );
-        //ESPUI.addControl( ControlType::Option, "0.256V (16x gain)", "2560", ControlColor::Alizarin, sel );
       }
     }
 
@@ -844,7 +840,7 @@ void initESPUI ( void ) {
   // upload a file to /upload-config
   ESPUI.WebServer()->on( "/upload-config", HTTP_POST, []( AsyncWebServerRequest * request ) {
     request->send( 200, "text/plain", "OK" );
-  }, [tabConfigurations]( AsyncWebServerRequest * request, String filename, size_t index, uint8_t* data, size_t len, bool final ) {
+  }, []( AsyncWebServerRequest * request, String filename, size_t index, uint8_t* data, size_t len, bool final ) {
     if( !index ) {
       request->_tempFile = LittleFS.open( "/autosteer.json", "w" );
     }

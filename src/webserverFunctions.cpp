@@ -107,13 +107,6 @@ void initWebServerFunctions( void ) {
     request->send(200, "application/json", json);
   });
 
-  /*ESPUI.WebServer()->on( "/test", HTTP_GET, [](AsyncWebServerRequest *request ) {
-    Serial.printf( "Client %s requested /test\n",
-                  request->client()->remoteIP().toString().c_str());
-    request->send( 200, "text/plain", "OK" );
-  });
-  */
-
   ESPUI.WebServer()->on( "/diagnosticsReset", HTTP_POST, [](AsyncWebServerRequest *request ){
     diagnostics.steerSupplyVoltageMax = machine.steerSupplyVoltage;
     diagnostics.steerSupplyVoltageMin = machine.steerSupplyVoltage;

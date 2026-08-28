@@ -82,7 +82,7 @@ json loadJsonFromFile( const char* fileName ) {
       file.read( data.data(), file.size() );
 
       try {
-        j = json::parse( data/*, nullptr, false*/ );
+        j = json::parse( data );
       } catch( json::exception& e ) {
         // output exception information
         Serial.print( "message: " );
