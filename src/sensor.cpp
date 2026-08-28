@@ -250,9 +250,23 @@ void initSensors() {
 
   pinMode( steerConfig.gpioWasSupplyDetectionPin, INPUT );
 
-  if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::JDVariableDuty ) {
-    pinMode( steerConfig.gpioWASPulse, INPUT );
-    attachInterrupt( steerConfig.gpioWASPulse, DeereVariableDutyWasIsr, CHANGE );
+  switch( steerConfig.wheelAngleInput ) {
+    case SteerConfig::AnalogIn::JDVariableDuty: {
+      pinMode( steerConfig.gpioWASPulse, INPUT );
+      attachInterrupt( steerConfig.gpioWASPulse, DeereVariableDutyWasIsr, CHANGE );
+    }
+    break;
+
+    case SteerConfig::AnalogIn::CanbusFendt:
+    case SteerConfig::AnalogIn::CanbusValtraMasseyChallenger:
+      break;
+
+    default: {
+      ads.setGain( ( adsGain_t )steerConfig.adsGain );
+      ads.begin();
+      ads.setSPS( ADS1115_DR_860SPS );
+    }
+    break;
   }
 
   xTaskCreate( sensorWorker100HzPoller, "sensorWorker100HzPoller", 4096, NULL, 6, NULL );
