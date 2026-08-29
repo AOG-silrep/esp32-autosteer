@@ -45,7 +45,6 @@ SteerCanData steerCanData = {0};
 Machine machine;
 Safety safety;
 
-portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 SemaphoreHandle_t i2cMutex;
 SemaphoreHandle_t diagnosticsDisplayMutex;
 TimerHandle_t saveTimer;
