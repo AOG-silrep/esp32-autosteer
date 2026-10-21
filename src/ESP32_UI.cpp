@@ -21,6 +21,7 @@ uint16_t manualValveSwitcher;
 uint16_t manualValvePWMWidget;
 uint16_t numberWasCenter;
 uint16_t numberWasOffset;
+static uint16_t labelWasNudgeHint;
 char downloadFilename[50];
 
 void manualValveCallback(Control *sender, int type);
@@ -269,6 +270,7 @@ void initESPUI ( void ) {
         if( steerConfig.wheelAngleInput >= SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
           steerConfig.wheelAngleSensorType = SteerConfig::WheelAngleSensorType::WheelAngle; // arm linkage not applicable for Canbus
         }
+        ESPUI.updateLabel( labelWasNudgeHint, wasCalibrationNudgeHint() );
         setResetButtonToRed();
       } );
       ESPUI.addControl( ControlType::Option, "None", "0", ControlColor::Alizarin, sel );
@@ -279,6 +281,7 @@ void initESPUI ( void ) {
       uint16_t sel = ESPUI.addControl( ControlType::Select, "Wheel Angle Sensor Type*", String( ( int )steerConfig.wheelAngleSensorType ), ControlColor::Wetasphalt, tab,
       []( Control * control, int id ) {
         steerConfig.wheelAngleSensorType = ( SteerConfig::WheelAngleSensorType )control->value.toInt();
+        ESPUI.updateLabel( labelWasNudgeHint, wasCalibrationNudgeHint() );
         setResetButtonToRed();
       } );
       ESPUI.addControl( ControlType::Option, "Direct Wheel Angle", "0", ControlColor::Alizarin, sel );
@@ -320,6 +323,7 @@ void initESPUI ( void ) {
     ESPUI.addControl( ControlType::Switcher, "Invert Wheel Angle Sensor", steerConfig.invertWheelAngleSensor ? "1" : "0", ControlColor::Peterriver, tab,
     []( Control * control, int id ) {
       steerConfig.invertWheelAngleSensor = control->value.toInt() == 1;
+      ESPUI.updateLabel( labelWasNudgeHint, wasCalibrationNudgeHint() );
       saveConfigAfterDelay();
     } );
 
@@ -333,6 +337,8 @@ void initESPUI ( void ) {
       ESPUI.addControl( ControlType::Max, "Roll Max", "80", ControlColor::Peterriver, numberWasOffset );
       ESPUI.addControl( ControlType::Step, "Roll Step", "0.1", ControlColor::Peterriver, numberWasOffset );
     }
+
+    labelWasNudgeHint = ESPUI.addControl( ControlType::Label, "Tractor tracks off the line:", wasCalibrationNudgeHint(), ControlColor::Peterriver, tab );
 
     if( steerConfig.wheelAngleInput != SteerConfig::AnalogIn::None ) {
       ESPUI.addControl( ControlType::Label, "Auto-calibrate center:", "<a href='/wasCalibration'>WAS Calibration</a>", ControlColor::Carrot, tab );

@@ -401,5 +401,6 @@ extern void wasCalibrationStart();
 extern void wasCalibrationReset();
 extern bool wasCalibrationApply();
 extern String wasCalibrationJson();
+extern String wasCalibrationNudgeHint();
 extern void saveConfigAfterDelay();
 extern void showHardwareStateOnAOG( uint8_t );

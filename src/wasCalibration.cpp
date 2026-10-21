@@ -69,6 +69,18 @@ static bool appliesAsOffset() {
          steerConfig.wheelAngleInput == SteerConfig::AnalogIn::CanbusFendt;
 }
 
+String wasCalibrationNudgeHint() {
+  // holding left of the line means AgOpenGPS steadily commands right (positive), so the sensor reads
+  // too high when straight; raising the offset, or the center of a non inverted sensor, lowers it
+  if( appliesAsOffset() ){
+    return "Left of the line: raise Wheel Angle Offset<br>Right of the line: lower Wheel Angle Offset";
+  }
+  if( steerConfig.invertWheelAngleSensor ){
+    return "Left of the line: lower Wheel Angle Sensor Center<br>Right of the line: raise Wheel Angle Sensor Center";
+  }
+  return "Left of the line: raise Wheel Angle Sensor Center<br>Right of the line: lower Wheel Angle Sensor Center";
+}
+
 static long centerFromCounts( float meanCounts ) {
   // keep the configured offset, so the sensor reads zero when driving straight
   float sign = steerConfig.invertWheelAngleSensor ? -1 : 1;
