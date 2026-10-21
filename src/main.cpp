@@ -47,6 +47,7 @@ Safety safety;
 
 SemaphoreHandle_t i2cMutex;
 SemaphoreHandle_t diagnosticsDisplayMutex;
+SemaphoreHandle_t wasCalibrationMutex;
 TimerHandle_t saveTimer;
 bool saveConfigRequested = false;
 
@@ -101,6 +102,7 @@ void setup( void ) {
 
   i2cMutex = xSemaphoreCreateMutex();
   diagnosticsDisplayMutex = xSemaphoreCreateMutex();
+  wasCalibrationMutex = xSemaphoreCreateMutex();
   saveTimer = xTimerCreate( "SaveTimer", pdMS_TO_TICKS( 10000 ), pdFALSE, NULL, saveTimerCallback ); // save after 10 seconds of inactivity
 
   if( ( SteerConfig::OutputType ) steerConfig.outputType >= SteerConfig::OutputType::Canbus13_19Controller ||
@@ -116,6 +118,7 @@ void setup( void ) {
   initCan();
   initSensors();
   initAutosteer();
+  initWasCalibration();
   initDiagnostics();
 
   if( !MDNS.begin( "steering" )){

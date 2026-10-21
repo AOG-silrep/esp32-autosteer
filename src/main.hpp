@@ -47,9 +47,12 @@ extern uint16_t labelStatusCanESP32;
 extern uint16_t labelStatusCanMCP2515;
 extern uint16_t manualValveSwitcher;
 extern uint16_t manualValvePWMWidget;
+extern uint16_t numberWasCenter;
+extern uint16_t numberWasOffset;
 
 extern SemaphoreHandle_t i2cMutex;
 extern SemaphoreHandle_t diagnosticsDisplayMutex;
+extern SemaphoreHandle_t wasCalibrationMutex;
 extern TimerHandle_t saveTimer;
 extern TaskHandle_t canReceiverHandle;
 extern TaskHandle_t canSenderHandle;
@@ -328,7 +331,8 @@ extern SteerSettings steerSettings;
 struct SteerSetpoints {
   uint8_t relais = 0;
   float speed = 0;
-  uint16_t distanceFromLine = 32020;
+  int16_t xteCm = 0; // cross track error from AgOpenGPS, 2 cm resolution
+  bool xteValid = false; // false when AgOpenGPS has no guidance line or autosteer is off
   double requestedSteerAngle = 0;
 
   bool enabled = false;
@@ -341,6 +345,7 @@ struct SteerSetpoints {
   double wheelAngleCounts = 0;
   double wheelAngleCurrentDisplacement = 0;
   double wheelAngleRaw = 0;
+  double wheelAnglePreAckermann = 0; // after invert and offset, before Ackermann
   double pidOutput = 0;
   float correction = 0;
 
@@ -391,4 +396,10 @@ extern void initCan();
 extern void initAutosteer();
 extern void initWiFi();
 extern void initDiagnostics();
+extern void initWasCalibration();
+extern void wasCalibrationStart();
+extern void wasCalibrationReset();
+extern bool wasCalibrationApply();
+extern String wasCalibrationJson();
+extern void saveConfigAfterDelay();
 extern void showHardwareStateOnAOG( uint8_t );

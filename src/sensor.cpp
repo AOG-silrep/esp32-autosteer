@@ -153,6 +153,7 @@ void sensorWorker100HzPoller( void* z ) {
       }
 
       wheelAngleTmp -= steerConfig.wheelAngleOffset;
+      steerSetpoints.wheelAnglePreAckermann = wheelAngleTmp;
 
       if (( wheelAngleTmp > 0 && steerConfig.ackermannAboveZero == true ) || 
           ( wheelAngleTmp < 0 && steerConfig.ackermannAboveZero == false )) {

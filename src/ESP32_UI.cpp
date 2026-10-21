@@ -19,6 +19,8 @@ uint16_t labelStatusCanMCP2515;
 uint16_t labelBuildDate;
 uint16_t manualValveSwitcher;
 uint16_t manualValvePWMWidget;
+uint16_t numberWasCenter;
+uint16_t numberWasOffset;
 char downloadFilename[50];
 
 void manualValveCallback(Control *sender, int type);
@@ -294,14 +296,14 @@ void initESPUI ( void ) {
     }
 
     if( steerConfig.wheelAngleInput != SteerConfig::AnalogIn::CanbusFendt ) {
-      uint16_t num = ESPUI.addControl( ControlType::Number, "Wheel Angle Sensor Center", String( steerConfig.wheelAnglePositionZero ), ControlColor::Peterriver, tab,
+      numberWasCenter = ESPUI.addControl( ControlType::Number, "Wheel Angle Sensor Center", String( steerConfig.wheelAnglePositionZero ), ControlColor::Peterriver, tab,
       []( Control * control, int id ) {
         steerConfig.wheelAnglePositionZero = control->value.toInt();
         saveConfigAfterDelay();
       } );
-      ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, num );
-      ESPUI.addControl( ControlType::Max, "Max", "65535", ControlColor::Peterriver, num );
-      ESPUI.addControl( ControlType::Step, "Step", "1", ControlColor::Peterriver, num );
+      ESPUI.addControl( ControlType::Min, "Min", "0", ControlColor::Peterriver, numberWasCenter );
+      ESPUI.addControl( ControlType::Max, "Max", "65535", ControlColor::Peterriver, numberWasCenter );
+      ESPUI.addControl( ControlType::Step, "Step", "1", ControlColor::Peterriver, numberWasCenter );
     }
 
     {
@@ -322,14 +324,18 @@ void initESPUI ( void ) {
     } );
 
     {
-      uint16_t num = ESPUI.addControl( ControlType::Number, "Wheel Angle Offset", String( steerConfig.wheelAngleOffset ), ControlColor::Peterriver, tab,
+      numberWasOffset = ESPUI.addControl( ControlType::Number, "Wheel Angle Offset", String( steerConfig.wheelAngleOffset ), ControlColor::Peterriver, tab,
       []( Control * control, int id ) {
         steerConfig.wheelAngleOffset = control->value.toFloat();
         saveConfigAfterDelay();
       } );
-      ESPUI.addControl( ControlType::Min, "Roll Min", "-80", ControlColor::Peterriver, num );
-      ESPUI.addControl( ControlType::Max, "Roll Max", "80", ControlColor::Peterriver, num );
-      ESPUI.addControl( ControlType::Step, "Roll Step", "0.1", ControlColor::Peterriver, num );
+      ESPUI.addControl( ControlType::Min, "Roll Min", "-80", ControlColor::Peterriver, numberWasOffset );
+      ESPUI.addControl( ControlType::Max, "Roll Max", "80", ControlColor::Peterriver, numberWasOffset );
+      ESPUI.addControl( ControlType::Step, "Roll Step", "0.1", ControlColor::Peterriver, numberWasOffset );
+    }
+
+    if( steerConfig.wheelAngleInput != SteerConfig::AnalogIn::None ) {
+      ESPUI.addControl( ControlType::Label, "Auto-calibrate center:", "<a href='/wasCalibration'>WAS Calibration</a>", ControlColor::Carrot, tab );
     }
 
     if( steerConfig.wheelAngleSensorType == SteerConfig::WheelAngleSensorType::TieRodDisplacement ) {

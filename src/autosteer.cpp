@@ -710,6 +710,13 @@ void initAutosteer() {
             steerSetpoints.requestedSteerAngle = (( double ) ((( int16_t )data[8]) | (( int8_t )data[9] << 8 ))) * 0.01; //horrible code to make negative doubles work
           }
 
+          if( data[10] == 255 ){ // no guidance line, or autosteer off in AgOpenGPS
+            steerSetpoints.xteValid = false;
+          } else {
+            steerSetpoints.xteCm = (( int16_t )data[10] - 127 ) * 2; // 2 cm steps, offset by 127
+            steerSetpoints.xteValid = true;
+          }
+
           steerSetpoints.previousPacketReceived = steerSetpoints.lastPacketReceived;
           steerSetpoints.lastPacketReceived = millis();
         }
