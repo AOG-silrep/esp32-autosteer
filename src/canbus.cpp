@@ -642,7 +642,7 @@ void initCan() {
       claimAddress( msgISO );
       xTaskCreate( can13_19Sender100Hz, "can13_19Sender", 2048, NULL, 5, &canSenderHandle );
       xTaskCreate( canComplementSwitchWorker10Hz, "canComplementSwitch", 2048, NULL, 5, NULL );
-      xTaskCreate( canReceiver10Hz, "canReceiver", 2048, NULL, 5, &canReceiverHandle );
+      xTaskCreate( canReceiver10Hz, "canReceiver", 3072, NULL, 5, &canReceiverHandle );
       Serial.println("Danfoss 13/19 valve started");
     } else if( steerConfig.outputType == SteerConfig::OutputType::CanbusF0_240Controller ){
       msgISO = 0x18EEFF2C;
@@ -653,7 +653,7 @@ void initCan() {
       xTaskCreate( canFendtSteeringReceiver100Hz, "canReceiver", 2048, NULL, 5, &canReceiverHandle );
       Serial.println("F0/240 valve started");
     } else {
-      xTaskCreate( canReceiver10Hz, "canReceiver", 2048, NULL, 5, &canReceiverHandle );
+      xTaskCreate( canReceiver10Hz, "canReceiver", 3072, NULL, 5, &canReceiverHandle );
       Serial.println("Non-steering Canbus receiver started");
     }
     ESPUI.getControl( labelStatusCanESP32 )->color = ControlColor::Emerald;
