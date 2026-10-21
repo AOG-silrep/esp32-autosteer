@@ -212,6 +212,6 @@ void initIdleStats() {
   periph_module_enable( PERIPH_TIMG0_MODULE );  // TIMG0 hosts the RTC calibration registers used by rtcCalSampleCpuMHz()
   SET_PERI_REG_MASK( TIMGCLK_REG( 0 ), TIMG_CLK_EN );  // force-enable TIMG0's internal regfile clock, off by default
   xtalFreqMHz = ( uint32_t ) rtc_clk_xtal_freq_get();
-  xTaskCreate( idleStatsWorker, "IdleStats", 2048, NULL, 10, NULL );
+  xTaskCreate( idleStatsWorker, "IdleStats", 4096, NULL, 10, NULL );
   xTaskCreate( rtcRefCpuCheckWorker, "RtcRefCpuCheck", 2048, NULL, 1, NULL );
 }
