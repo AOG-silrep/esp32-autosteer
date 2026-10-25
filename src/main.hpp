@@ -403,4 +403,5 @@ extern bool wasCalibrationApply();
 extern String wasCalibrationJson();
 extern String wasCalibrationNudgeHint();
 extern void saveConfigAfterDelay();
+extern void sendAogMessage( const String& text, bool alarm = false );
 extern void showHardwareStateOnAOG( uint8_t );
