@@ -20,107 +20,68 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+
 #include "main.hpp"
 
 AsyncUDP udpHardwareMessage; // socket used only for the pop-up text messages sent to AgOpenGPS
 
-// Sends a human readable pop-up message to AgOpenGPS telling the operator why
-// autosteer did not engage, or what went wrong with the hardware.
+// Sends 'text' as PGN 0xDD (221), which AgOpenGPS shows in its hardware message banner:
+//   [0..1] 0x80 0x81 header, [2] 0x7F source (steer module), [3] 0xDD PGN,
+//   [4] length of bytes 5 and 6, the text and its terminating 0,
+//   [5] seconds to show the banner, [6] banner color: 0 salmon (alarm), otherwise bisque,
+//   [7..] the text as ASCII, terminated with 0x00,
+//   [last] CRC, the sum of bytes 2 up to the terminating 0.
+void sendAogMessage( const String& text, bool alarm ){
+  uint8_t data[64];
+  size_t textLength = min( text.length(), sizeof( data ) - 9 );
+  data[0] = 0x80;
+  data[1] = 0x81;
+  data[2] = 0x7F; // source: steer module
+  data[3] = 0xDD;
+  data[4] = textLength + 3; // bytes 5 and 6, the text and its terminating 0
+  data[5] = 3;
+  data[6] = alarm ? 0 : 1;
+  memcpy( data + 7, text.c_str(), textLength );
+  data[7 + textLength] = 0;
+  uint8_t crc = 0;
+  for( size_t i = 2; i < 8 + textLength; i++ ){
+    crc += data[i];
+  }
+  data[8 + textLength] = crc;
+  udpHardwareMessage.writeTo( data, 9 + textLength, ipDestination, initialisation.portSendTo );
+}
+
+// Tells the operator why autosteer did not engage, or what went wrong with the hardware.
 //
 // 'state' is normally machine.canbusSteeringState as received from the tractor
 // (see the decoding in diagnostics.cpp), but callers also pass their own codes
 // for conditions that do not come off the canbus. Each code and the text it
 // sends is described on its own case below.
-//
-// Every case builds the same PGN 0xDD (221) text packet by hand:
-//   [0..1] 0x80 0x81 header, [2] 0x7F source (steer module), [3] 0xDD PGN,
-//   [4] length of everything that follows except the CRC, [5..6] message type,
-//   [7..] the message text as ASCII, terminated with 0x00,
-//   [last] CRC, written after the sum below is calculated.
-// The array is declared one byte longer than the initializer list so that the
-// implicitly zeroed last element is the slot the CRC gets stored in.
-
 void showHardwareStateOnAOG( uint8_t state ){
   switch( state ){
-    case 0x00: { // handwheel activity -> "Release steeringwheel", sent from canbus.cpp
-      uint8_t data[30] = {0x80, 0x81, 0x7F, 0xDD, 24, 3, 1, 0x52, 0x65, 0x6C, 0x65, 0x61, 0x73, 0x65, 0x20, 0x73, 0x74, 0x65, 0x65, 0x72, 0x69, 0x6E, 0x67, 0x77, 0x68, 0x65, 0x65, 0x6C, 0x00}; //Release steeringwheel
-      int CRCtoAOG = 0;
-      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
-        CRCtoAOG = ( CRCtoAOG + data[ i ] );
-      }
-      data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
-    }
-    break;
-    case 0x20: { // stagnant -> "Turn steeringwheel", sent from canbus.cpp
-      uint8_t data[27] = {0x80, 0x81, 0x7F, 0xDD, 21, 3, 1, 0x54, 0x75, 0x72, 0x6E, 0x20, 0x73, 0x74, 0x65, 0x65, 0x72, 0x69, 0x6E, 0x67, 0x77, 0x68, 0x65, 0x65, 0x6C, 0x00}; //Turn steeringwheel
-      int CRCtoAOG = 0;
-      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
-        CRCtoAOG = ( CRCtoAOG + data[ i ] );
-      }
-      data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
-    }
-    break;
-    case 0x50: { // no message from the steering controller -> "No Canbus output from AOG", sent from canbus.cpp
-      uint8_t data[35] = {0x80, 0x81, 0x7F, 0xDD, 29, 3, 1, 0x4E, 0x6F, 0x20, 0x43, 0x61, 0x6E, 0x62, 0x75, 0x73, 0x20, 0x6F, 0x75, 0x74, 0x70, 0x75, 0x74, 0x20, 0x66, 0x72, 0x6F, 0x6D, 0x20, 0x41, 0x4F, 0x47, 0x20, 0x00}; //No Canbus output from AOG
-      int CRCtoAOG = 0;
-      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
-        CRCtoAOG = ( CRCtoAOG + data[ i ] );
-      }
-      data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
-    }
-    break;
-    case 0x60: { // not initialized / canbus steering timeout -> "Autosteer disabled", sent from canbus.cpp
-      uint8_t data[27] = {0x80, 0x81, 0x7F, 0xDD, 21, 3, 1, 0x41, 0x75, 0x74, 0x6F, 0x73, 0x74, 0x65, 0x65, 0x72, 0x20, 0x64, 0x69, 0x73, 0x61, 0x62, 0x6C, 0x65, 0x64, 0x00}; //Autosteer disabled
-      int CRCtoAOG = 0;
-      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
-        CRCtoAOG = ( CRCtoAOG + data[ i ] );
-      }
-      data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
-    }
-    break;
-    case 0x61: { // tractor not driving -> "Tractor not driving", sent from canbus.cpp
-      uint8_t data[28] = {0x80, 0x81, 0x7F, 0xDD, 22, 3, 1, 0x54, 0x72, 0x61, 0x63, 0x74, 0x6F, 0x72, 0x20, 0x6E, 0x6F, 0x74, 0x20, 0x64, 0x72, 0x69, 0x76, 0x69, 0x6E, 0x67, 0x00}; //Tractor not driving
-      int CRCtoAOG = 0;
-      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
-        CRCtoAOG = ( CRCtoAOG + data[ i ] );
-      }
-      data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
-    }
-    break;
-    case 0x70: { // too fast to engage -> "Slow down to engage", sent from autosteer.cpp
-      uint8_t data[28] = {0x80, 0x81, 0x7F, 0xDD, 23, 3, 1, 0x53, 0x6C, 0x6F, 0x77, 0x20, 0x64, 0x6F, 0x77, 0x6E, 0x20, 0x74, 0x6F, 0x20, 0x65, 0x6E, 0x67, 0x61, 0x67, 0x65, 0x00}; //Slow down to engage
-      int CRCtoAOG = 0;
-      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
-        CRCtoAOG = ( CRCtoAOG + data[ i ] );
-      }
-      data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
-    }
-    break;
-    case 0x75: { // WAS jumped more than 5 degrees between samples -> "WAS implausibility error", sent from sensor.cpp
-      uint8_t data[33] = {0x80, 0x81, 0x7F, 0xDD, 27, 3, 1, 0x57, 0x41, 0x53, 0x20, 0x69, 0x6D, 0x70, 0x6C, 0x61, 0x75, 0x73, 0x69, 0x62, 0x69, 0x6C, 0x69, 0x74, 0x79, 0x20, 0x65, 0x72, 0x72, 0x6F, 0x72, 0x00}; //WAS implausibility error
-      int CRCtoAOG = 0;
-      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
-        CRCtoAOG = ( CRCtoAOG + data[ i ] );
-      }
-      data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
-    }
-    break;
-    default: { // anything else -> "Unknown error", sent from canbus.cpp
-      uint8_t data[22] = {0x80, 0x81, 0x7F, 0xDD, 17, 3, 1, 0x55, 0x6E, 0x6B, 0x6E, 0x6F, 0x77, 0x6E, 0x20, 0x65, 0x72, 0x72, 0x6F, 0x72, 0x00};
-      int CRCtoAOG = 0;
-      for ( byte i = 2; i < sizeof( data ) - 1; i++ ){
-        CRCtoAOG = ( CRCtoAOG + data[ i ] );
-      }
-      data[ sizeof( data ) - 1 ] = CRCtoAOG;
-      udpHardwareMessage.writeTo( data, sizeof( data ), ipDestination, initialisation.portSendTo );
-    }
-    break;
+    case 0x00: // handwheel activity, sent from canbus.cpp
+      sendAogMessage( "Release steeringwheel" );
+      break;
+    case 0x20: // stagnant, sent from canbus.cpp
+      sendAogMessage( "Turn steeringwheel" );
+      break;
+    case 0x50: // no message from the steering controller, sent from canbus.cpp
+      sendAogMessage( "No Canbus output from AOG" );
+      break;
+    case 0x60: // not initialized / canbus steering timeout, sent from canbus.cpp
+      sendAogMessage( "Autosteer disabled" );
+      break;
+    case 0x61: // tractor not driving, sent from canbus.cpp
+      sendAogMessage( "Tractor not driving" );
+      break;
+    case 0x70: // too fast to engage, sent from autosteer.cpp
+      sendAogMessage( "Slow down to engage" );
+      break;
+    case 0x75: // WAS jumped more than 5 degrees between samples, sent from sensor.cpp
+      sendAogMessage( "WAS implausibility error" );
+      break;
+    default: // anything else, sent from canbus.cpp
+      sendAogMessage( "Unknown error" );
+      break;
   }
 }

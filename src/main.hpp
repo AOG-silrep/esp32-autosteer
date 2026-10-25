@@ -391,4 +391,5 @@ extern void initCan();
 extern void initAutosteer();
 extern void initWiFi();
 extern void initDiagnostics();
+extern void sendAogMessage( const String& text, bool alarm = false );
 extern void showHardwareStateOnAOG( uint8_t );
