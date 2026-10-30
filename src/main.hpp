@@ -33,7 +33,9 @@
 
 #include <Wire.h>
 
-extern bool AogToMachineEngagedMismatch;
+#include "autosteerState.hpp"
+
+extern SteerState steerState;
 extern int8_t ditherAmount; // variable gets reset upon user changing dither
 extern uint8_t hydLift;
 extern time_t lastHydLiftMillis;
@@ -95,11 +97,9 @@ extern Safety safety;
 
 struct Machine {
   bool disengagedBySteeringWheel = false; // disengaged by steering wheel > for diagnostic page
-  bool disengageInput = false;    // disengage input, whether physical switches or CANbus
   time_t lastDisengageMillis = 0; // last time disengage input changed
   bool autosteerSafetyLock = false; // a condition exists that autosteer should not be engaged
   bool canbusSteeringActive = false; // traditional or Canbus steering
-  bool steeringEnabled = false; // ESP32 internal steering state > sent to AOG
   time_t lastAutosteerMillis = 0; // last time autosteer input changed
   bool workswitchState = false; // current state of workswitch
   uint8_t canbusSteeringState = 0; // machine canbus steering state (receive only)

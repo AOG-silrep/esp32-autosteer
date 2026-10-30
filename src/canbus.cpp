@@ -72,10 +72,7 @@ void canFendtSteeringReceiver100Hz( void* z ) {
       if( message.flags & TWAI_MSG_FLAG_EXTD ) {
         if( message.identifier == FendtAutosteer ) { // 0x0CEF2CF0
           if( message.data[0] == 0x05 && message.data[1] == 0x1A && message.data[2] == 0x00 ) {
-            machine.steeringEnabled = false;
-            if( steerSetpoints.enabled == true ) {
-              machine.autosteerSafetyLock = true;
-            }
+            steerState.fromHardware( false );
             machine.disengagedBySteeringWheel = true;
           } else if( message.data[0] == 0x05 && message.data[1] == 0x0A ) {
             machine.FendtWasCounts = ((( int8_t )message.data[4] << 8 ) + message.data[5] );
@@ -198,31 +195,28 @@ void canReceiver10Hz( void* z ) {
             machine.lastCanbusSteeringMillis = millis();
             if( machine.canbusSteeringState == 0x14 ) { // we need the steer enabled confirmation from the machine before disengaging again
               readyToDisengage = true;
-              machine.disengageInput = false;
+              steerState.setDisengage( false );
               machine.disengagedBySteeringWheel = false;
             } else if( machine.canbusSteeringState == 0x00 ) { // handwheel activity disengages
-              if( steerSetpoints.enabled == true ) {
-                machine.autosteerSafetyLock = true;
-              }
-              machine.steeringEnabled = false;
+              steerState.setDisengage( true );
               machine.disengagedBySteeringWheel = true;
               readyToDisengage = false;
-              machine.disengageInput = true;
               machine.lastDisengageMillis = millis();
             } else if( machine.canbusSteeringState == 0x20 ) { // stagnant
               if( readyToDisengage == true ) {
                 showHardwareStateOnAOG( 0x61 );
               }
-              machine.steeringEnabled = false;
+              steerState.setDisengage( false );
+              if( steerState.getHardwareState() == true ) {
+                steerState.fromHardware( false );
+              }
               readyToDisengage = false;
-              machine.disengageInput = false;
             } else if( readyToDisengage == true ) { // going from 'engaged' to anything else will disengage
-              machine.steeringEnabled = false;
+              steerState.fromHardware( false );
               readyToDisengage = false;
               machine.lastDisengageMillis = millis();
-              AogToMachineEngagedMismatch = true;
             } else {
-              machine.disengageInput = false;
+              steerState.setDisengage( false );
             }
           }
           break;
@@ -234,18 +228,12 @@ void canReceiver10Hz( void* z ) {
               case VMCAutosteer: { // 0x18EF1C00
                 if(( message.data[0] ) == 15 && ( message.data[1] ) == 96 && ( message.data[2] ) == 1 ) {
                   if( machine.canbusSteeringState == 0x10 ) { // only try to engage when machine is ready, to avoid race conditions
-                    if( steerSetpoints.speed > steerConfig.maxAutosteerSpeed ) {
-                      machine.steeringEnabled = false;
-                      safety.autosteerDisabledByMaxEngageSpeed = true;
-                    } else {
-                      machine.steeringEnabled = true;
-                      AogToMachineEngagedMismatch = true;
-                    }
+                    steerState.fromHardware( true ); // checks max engage speed
                   } else {
                     showHardwareStateOnAOG( machine.canbusSteeringState );
                   }
                 } else if(( message.data[0] ) == 15 && ( message.data[1] ) == 96 && ( message.data[2] ) == 0 ) {
-                  machine.steeringEnabled = false;
+                  steerState.fromHardware( false );
               }
               break;
 
@@ -318,8 +306,8 @@ void can13_19Sender100Hz( void* z ) { // Valtra Massey Challenger
   TickType_t xLastWakeTime = xTaskGetTickCount();
 
   for( ;; ) {
-    if( millis() - machine.lastCanbusSteeringMillis > 500 ){
-      machine.steeringEnabled = false;
+    if( millis() - machine.lastCanbusSteeringMillis > 500 && steerState.getHardwareState() == true ){
+      steerState.fromHardware( false );
     }
     twai_message_t message = {};
     message.identifier = 0x0CAD131C;
@@ -428,21 +416,15 @@ void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
       }
       if( rxId == engageMessage ){
         if( rxBuf[0] == 0x0F && rxBuf[1] == 0x60 && rxBuf[2] == 0x01 ){
-          if( machine.steeringEnabled == false ) {
-            machine.steeringEnabled = true;
-            AogToMachineEngagedMismatch = true;
+          steerState.setDisengage( false ); // clear disengage first, fromHardware locks out while disengaged
+          if( steerState.getHardwareState() == false ) {
+            steerState.fromHardware( true );
           }
-          safety.AOGEnableAutosteerTimeout = false;
           canEngageMessage = true;
           machine.disengagedBySteeringWheel = false;
-          machine.disengageInput = false;
         } else if( rxBuf[0] == 0x0F && rxBuf[1] == 0x60 && rxBuf[2] == 0x40 ){
-          machine.steeringEnabled = false;
           canEngageMessage = false;
-          machine.disengageInput = true;
-          if( steerSetpoints.enabled == true ) {
-            machine.autosteerSafetyLock = true;
-          }
+          steerState.setDisengage( true );
         }
         machine.lastMCP2515CanbusMillis = millis();
       }
@@ -564,13 +546,7 @@ void canComplementSwitchWorker10Hz( void* z ) {
         if(( machine.lastCanbusSteeringMillis + 500 ) < millis() ){ // Canbus steering timeout
           showHardwareStateOnAOG( 0x60 );
         } else if( machine.canbusSteeringState == 0x10 ){ // only try to engage when machine is ready, to avoid race conditions
-          if( steerSetpoints.speed > steerConfig.maxAutosteerSpeed ) {
-            machine.steeringEnabled = false;
-            safety.autosteerDisabledByMaxEngageSpeed = true;
-          } else {
-            machine.steeringEnabled = true;
-            AogToMachineEngagedMismatch = true;
-          }
+          steerState.fromHardware( true ); // checks max engage speed
         } else {
           showHardwareStateOnAOG( machine.canbusSteeringState );
         }

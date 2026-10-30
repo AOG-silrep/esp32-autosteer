@@ -28,7 +28,7 @@
 
 #include "main.hpp"
 #include "jsonFunctions.hpp"
-#include "autosteerState.cpp"
+#include "autosteerState.hpp"
 #include "driver/gpio.h"
 #include <driver/twai.h>  // Native ESP-IDF TWAI driver
 
@@ -64,8 +64,6 @@ uint32_t DRAM_ATTR onTime;
 uint32_t DRAM_ATTR offTime;
 bool DRAM_ATTR disengageState = LOW; // bool state = ( GPIO.in >> 23 ) & 0x1;
 
-bool previousAogEnabledState = false;
-bool AogToMachineEngagedMismatch = false; // do not update machine engaged state from AOG after switch change until round trip is completed
 bool ditherDirection = false;
 bool dtcAutosteerPrevious = false;
 bool UDPTimeout = true; // AOG will probably not be running at startup
@@ -100,6 +98,11 @@ void autosteerWorker100Hz( void* z ) {
 
   for( ;; ) {
     safety.timeoutPoint = millis() - Timeout;
+
+    steerSetpoints.enabled = steerState.toHardware();
+    safety.autosteerDisabledByMaxEngageSpeed = steerState.getDisabledByMaxEngageSpeed();
+    safety.AOGEnableAutosteerTimeout = steerState.getEnableAutosteerTimeout();
+    machine.autosteerSafetyLock = steerState.getAutosteerSafetyLock();
 
     if( steerSetpoints.enabled == true ){
       if( steerConfig.wheelAngleInput < SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
@@ -447,7 +450,7 @@ void autosteerWorker100Hz( void* z ) {
           digitalWrite( steerConfig.gpioWorkLED, !machine.workswitchState);
         }
 
-          if(( machine.steeringEnabled == false || steerSetpoints.enabled == false ) && steerConfig.manualSteerState == true ){
+          if( steerSetpoints.enabled == false && steerConfig.manualSteerState == true ){
             steerConfig.manualSteerState = false;
             ESPUI.updateSwitcher( manualValveSwitcher, false );
           }
@@ -478,7 +481,7 @@ void autosteerWorker100Hz( void* z ) {
         helloFromAutoSteer[8] = helloSteerPosition >> 8;
 
         uint8_t switchByte = 0;
-        switchByte |= machine.steeringEnabled ? 0 : 2;   //put steerswitch status in bit 1 position
+        switchByte |= steerState.toSoftware() ? 0 : 2;   //put steerswitch status in bit 1 position
         switchByte |= machine.workswitchState ? 0 : 1;
         helloFromAutoSteer[9] = switchByte;
         udpSendFrom.writeTo( helloFromAutoSteer, sizeof( helloFromAutoSteer ), ipDestination, initialisation.portSendTo );
@@ -597,10 +600,6 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
         steerState.setDisengage( false );
       }
     }
-    steerSetpoints.enabled = steerState.toHardware();
-    safety.autosteerDisabledByMaxEngageSpeed = steerState.getDisabledByMaxEngageSpeed();
-    safety.AOGEnableAutosteerTimeout = steerState.getEnableAutosteerTimeout();
-    machine.autosteerSafetyLock = steerState.getAutosteerSafetyLock();
 
     vTaskDelayUntil( &xLastWakeTime, xFrequency );
   }
@@ -801,6 +800,7 @@ void initAutosteer() {
   }
 
   if( machine.canbusSteeringActive == true ){
+    steerState.setDisengage( false ); // no disengage switch is polled, Canbus messages set disengage instead
     String str;
     str.reserve( 30 );
     str = "\nN/A in CANbus steering";
