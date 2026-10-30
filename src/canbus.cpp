@@ -234,6 +234,7 @@ void canReceiver10Hz( void* z ) {
                   }
                 } else if(( message.data[0] ) == 15 && ( message.data[1] ) == 96 && ( message.data[2] ) == 0 ) {
                   steerState.fromHardware( false );
+                }
               }
               break;
 
@@ -248,7 +249,6 @@ void canReceiver10Hz( void* z ) {
 
               default:
                 break;
-              }
             }
           }
           break;
