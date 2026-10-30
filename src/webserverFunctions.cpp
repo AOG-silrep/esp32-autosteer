@@ -224,18 +224,16 @@ void initWebServerFunctions( void ) {
               data.passSeconds + ' s of steady tracking, ' + data.passTarget + ' s needed. The pass is saved when you leave the line.' : '-';
             var rows = '';
             data.passes.forEach((p, i) => {
-              rows += '<tr><td>' + (i + 1) + '</td><td>' + p.seconds + '</td><td>' + p.counts.toFixed(1) + '</td><td>' + p.degrees.toFixed(2) + '°</td></tr>';
+              rows += '<tr><td>' + (i + 1) + '</td><td>' + p.direction + '</td><td>' + p.seconds + '</td><td>' + p.counts.toFixed(1) +
+                '</td><td>' + p.degrees.toFixed(2) + '°</td></tr>';
             });
             document.getElementById('passes').innerHTML = rows;
             var result = 'Drive a pass to get a result.';
             if (data.passes.length > 0) {
-              result = 'Sensor reads ' + data.error.toFixed(2) + '° when driving straight, spread ' + data.spread.toFixed(2) +
-                '° over ' + data.passes.length + ' pass(es). ';
-              result += {
-                good: 'Good.',
-                needMorePasses: 'Drive the line in the other direction to confirm.',
-                passesDisagree: 'Passes disagree, check for side slope or a curved line.'
-              }[data.confidence];
+              result = 'Sensor reads ' + data.error.toFixed(2) + '° when driving straight over ' + data.passes.length +
+                ' pass(es), spread within a direction ' + data.spread.toFixed(2) + '°';
+              if (data.slope !== 0) result += ', side slope or line curvature ±' + data.slope.toFixed(2) + '°';
+              result += '. ' + confidenceText(data);
               result += ' Apply sets ' + (data.applyAsOffset ? 'Wheel Angle Offset to ' + data.newValue.toFixed(2) + '°' :
                 'Wheel Angle Sensor Center to ' + data.newValue) + '.';
             }
@@ -263,9 +261,16 @@ void initWebServerFunctions( void ) {
             loadData();
           }));
       }
+      function confidenceText(data) {
+        return {
+          good: 'Good.',
+          needMorePasses: data.slope !== 0 ? 'Drive another pass in each direction to confirm.' :
+            'Drive the line in the other direction to confirm.',
+          passesDisagree: 'Passes in the same direction disagree, check the line is straight and the passes steady.'
+        }[data.confidence];
+      }
       function applyResult() {
-        if (last !== null && last.confidence !== 'good' &&
-            !confirm('The result is not confirmed by passes in both directions. Apply anyway?')) return;
+        if (last !== null && last.confidence !== 'good' && !confirm(confidenceText(last) + ' Apply anyway?')) return;
         send('apply');
       }
       setInterval(loadData, 500);
@@ -280,7 +285,7 @@ void initWebServerFunctions( void ) {
       <li>In AgOpenGPS, set the steering integral to 0. Note the current value so you can restore it afterwards.</li>
       <li>Use a straight AB line on level ground.</li>
       <li>Engage autosteer at working speed and let it settle on the line.</li>
-      <li>Drive at least one pass in each direction, with 15 s or more of steady tracking per pass.</li>
+      <li>Drive at least one pass in each direction, with 15 s or more of steady tracking per pass. On a side slope, drive two passes in each direction.</li>
       <li>Apply when the result shows Good, then restore the AgOpenGPS steering integral.</li>
       </ol>
       <p><label><input type="checkbox" id="integralZero" onchange="updateButtons()"> AgOpenGPS steering integral is set to 0</label></p>
@@ -298,7 +303,7 @@ void initWebServerFunctions( void ) {
       <p>Wheel angle</p>
       <canvas id="angleChart" height="120"></canvas>
       <table>
-      <thead><tr><th>Pass</th><th>Steady s</th><th>WAS counts</th><th>Reads when straight</th></tr></thead>
+      <thead><tr><th>Pass</th><th>Direction</th><th>Steady s</th><th>WAS counts</th><th>Reads when straight</th></tr></thead>
       <tbody id="passes"></tbody>
       </table>
       <p><strong>Result:</strong> <span id="result"></span></p>

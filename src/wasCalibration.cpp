@@ -87,23 +87,86 @@ static long centerFromCounts( float meanCounts ) {
   return lroundf( meanCounts - sign * steerConfig.wheelAngleOffset * steerConfig.wheelAngleCountsPerDegree );
 }
 
-static bool calculateResult( const WasCalibration& calibration, float& meanCounts, float& meanDegrees, float& spreadDegrees ) {
-  if( calibration.passCount == 0 ){
+enum class WasCalibrationConfidence { Good, NeedMorePasses, PassesDisagree };
+
+struct WasCalibrationResult {
+  float meanCounts;
+  float meanDegrees;
+  float spreadDegrees; // largest spread within one direction
+  float slopeDegrees; // half the difference between the directions
+  uint8_t group[MaxPasses]; // 0 or 1, the direction each pass was sorted into
+  WasCalibrationConfidence confidence;
+};
+
+// Side slope or a slightly curved line makes the tractor steer uphill to hold the line, which
+// flips sign with the driving direction while the WAS center error does not. No heading reaches
+// the module, so passes are split into two directions at the largest gap between their angles,
+// and the directions are weighted equally so the slope cancels.
+static bool calculateResult( const WasCalibration& calibration, WasCalibrationResult& result ) {
+  uint8_t count = calibration.passCount;
+  if( count == 0 ){
     return false;
   }
-  meanCounts = 0;
-  meanDegrees = 0;
-  float minDegrees = calibration.passes[0].meanDegrees;
-  float maxDegrees = minDegrees;
-  for( uint8_t i = 0; i < calibration.passCount; i++ ){
-    meanCounts += calibration.passes[i].meanCounts;
-    meanDegrees += calibration.passes[i].meanDegrees;
-    minDegrees = min( minDegrees, calibration.passes[i].meanDegrees );
-    maxDegrees = max( maxDegrees, calibration.passes[i].meanDegrees );
+  uint8_t order[MaxPasses];
+  for( uint8_t i = 0; i < count; i++ ){
+    order[i] = i;
+    for( uint8_t j = i; j > 0 && calibration.passes[order[j - 1]].meanDegrees > calibration.passes[order[j]].meanDegrees; j-- ){
+      uint8_t swap = order[j];
+      order[j] = order[j - 1];
+      order[j - 1] = swap;
+    }
   }
-  meanCounts /= calibration.passCount;
-  meanDegrees /= calibration.passCount;
-  spreadDegrees = maxDegrees - minDegrees;
+
+  // the first pass of the second direction in sorted order, count when all passes agree
+  uint8_t split = count;
+  if( calibration.passes[order[count - 1]].meanDegrees - calibration.passes[order[0]].meanDegrees >= GoodSpreadDegrees ){
+    float largestGap = 0;
+    for( uint8_t i = 1; i < count; i++ ){
+      float gap = calibration.passes[order[i]].meanDegrees - calibration.passes[order[i - 1]].meanDegrees;
+      if( gap > largestGap ){
+        largestGap = gap;
+        split = i;
+      }
+    }
+  }
+
+  float groupCounts[2] = { 0, 0 };
+  float groupDegrees[2] = { 0, 0 };
+  uint8_t groupSize[2] = { 0, 0 };
+  for( uint8_t i = 0; i < count; i++ ){
+    uint8_t group = i < split ? 0 : 1;
+    result.group[order[i]] = group;
+    groupCounts[group] += calibration.passes[order[i]].meanCounts;
+    groupDegrees[group] += calibration.passes[order[i]].meanDegrees;
+    groupSize[group]++;
+  }
+  groupCounts[0] /= groupSize[0];
+  groupDegrees[0] /= groupSize[0];
+  result.spreadDegrees = calibration.passes[order[split - 1]].meanDegrees - calibration.passes[order[0]].meanDegrees;
+
+  if( split == count ){
+    result.meanCounts = groupCounts[0];
+    result.meanDegrees = groupDegrees[0];
+    result.slopeDegrees = 0;
+    result.confidence = count < 2 ? WasCalibrationConfidence::NeedMorePasses : WasCalibrationConfidence::Good;
+    return true;
+  }
+
+  groupCounts[1] /= groupSize[1];
+  groupDegrees[1] /= groupSize[1];
+  result.spreadDegrees = max( result.spreadDegrees,
+                              calibration.passes[order[count - 1]].meanDegrees - calibration.passes[order[split]].meanDegrees );
+  result.meanCounts = ( groupCounts[0] + groupCounts[1] ) / 2;
+  result.meanDegrees = ( groupDegrees[0] + groupDegrees[1] ) / 2;
+  result.slopeDegrees = ( groupDegrees[1] - groupDegrees[0] ) / 2;
+  if( result.spreadDegrees >= GoodSpreadDegrees ){
+    result.confidence = WasCalibrationConfidence::PassesDisagree;
+  } else if( groupSize[0] < 2 || groupSize[1] < 2 ){
+    // a single pass per direction cannot tell slope from a pass that went wrong
+    result.confidence = WasCalibrationConfidence::NeedMorePasses;
+  } else {
+    result.confidence = WasCalibrationConfidence::Good;
+  }
   return true;
 }
 
@@ -237,8 +300,10 @@ bool wasCalibrationApply() {
   }
   bool applied = false;
   char message[sizeof( wasCalibration.message )];
-  float meanCounts, meanDegrees, spreadDegrees;
-  bool haveResult = calculateResult( wasCalibration, meanCounts, meanDegrees, spreadDegrees );
+  WasCalibrationResult result;
+  bool haveResult = calculateResult( wasCalibration, result );
+  float meanCounts = result.meanCounts;
+  float meanDegrees = result.meanDegrees;
   // the step the measured angle makes when applied, including Ackermann scaling
   float stepDegrees = haveResult ? fabs( meanDegrees ) * max( ( int )steerConfig.ackermann, 100 ) / 100 : 0;
 
@@ -314,6 +379,9 @@ String wasCalibrationJson() {
   json += snapshot.passSamples / SamplesPerSecond;
   json += ",\"passTarget\":";
   json += MinPassSamples / SamplesPerSecond;
+
+  WasCalibrationResult result;
+  bool haveResult = calculateResult( snapshot, result );
   json += ",\"passes\":[";
   for( uint8_t i = 0; i < snapshot.passCount; i++ ){
     if( i > 0 ){
@@ -325,30 +393,31 @@ String wasCalibrationJson() {
     json += String( snapshot.passes[i].meanCounts, 1 );
     json += ",\"degrees\":";
     json += String( snapshot.passes[i].meanDegrees, 2 );
+    json += ",\"direction\":";
+    json += result.group[i] + 1;
     json += "}";
   }
   json += "],\"applyAsOffset\":";
   json += appliesAsOffset() ? "true" : "false";
 
-  float meanCounts, meanDegrees, spreadDegrees;
-  if( calculateResult( snapshot, meanCounts, meanDegrees, spreadDegrees ) ){
+  if( haveResult ){
     json += ",\"error\":";
-    json += String( meanDegrees, 2 );
+    json += String( result.meanDegrees, 2 );
     json += ",\"spread\":";
-    json += String( spreadDegrees, 2 );
+    json += String( result.spreadDegrees, 2 );
+    json += ",\"slope\":";
+    json += String( result.slopeDegrees, 2 );
     json += ",\"confidence\":\"";
-    if( snapshot.passCount < 2 ){
-      json += "needMorePasses";
-    } else if( spreadDegrees >= GoodSpreadDegrees ){
-      json += "passesDisagree";
-    } else {
-      json += "good";
+    switch( result.confidence ){
+      case WasCalibrationConfidence::Good: json += "good"; break;
+      case WasCalibrationConfidence::NeedMorePasses: json += "needMorePasses"; break;
+      case WasCalibrationConfidence::PassesDisagree: json += "passesDisagree"; break;
     }
     json += "\",\"newValue\":";
     if( appliesAsOffset() ){
-      json += String( steerConfig.wheelAngleOffset + meanDegrees, 2 );
+      json += String( steerConfig.wheelAngleOffset + result.meanDegrees, 2 );
     } else {
-      json += centerFromCounts( meanCounts );
+      json += centerFromCounts( result.meanCounts );
     }
   }
   json += "}";
