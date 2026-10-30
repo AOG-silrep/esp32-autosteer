@@ -29,13 +29,15 @@
 #include "main.hpp"
 #include "jsonFunctions.hpp"
 
-#include "average.hpp"
-#include "ringbuffer.hpp"
-
 Adafruit_ADS1115 ads = Adafruit_ADS1115( 0x48 );
+
+bool WAS_Error = true; // true until WAS angle calculated on startup
+bool WAS_SupplyError = false;
 
 volatile time_t DeereWasOnTime;
 volatile time_t DeereWasOffTime;
+
+float rowSenseIntegrator; // integrator for Row Sense steering
 
 // http://www.schwietering.com/jayduino/filtuino/index.php?characteristic=bu&passmode=lp&order=2&usesr=usesr&sr=100&frequencyLow=5&noteLow=&noteHigh=&pw=pw&calctype=float&run=Send
 //Low pass butterworth filter order=2 alpha1=0.05
@@ -96,7 +98,7 @@ void sensorWorker100HzPoller( void* z ) {
       break;
       
       case SteerConfig::AnalogIn::CanbusFendt: {
-        wheelAngleTmp = ( uint16_t )( machine.canbusWasCounts + 32128 );
+        wheelAngleTmp = ( int16_t )machine.FendtWasCounts;
       }
       break;
 
@@ -111,7 +113,9 @@ void sensorWorker100HzPoller( void* z ) {
 
     {
       steerSetpoints.wheelAngleCounts = wheelAngleTmp;
-      wheelAngleTmp -= steerConfig.wheelAnglePositionZero;
+      if( steerConfig.wheelAngleInput != SteerConfig::AnalogIn::CanbusFendt ) {
+        wheelAngleTmp -= steerConfig.wheelAnglePositionZero; // Fendt is zeroed by default, only zero non-Fendt sensors
+      }
       wheelAngleTmp /= steerConfig.wheelAngleCountsPerDegree;
 
       steerSetpoints.wheelAngleRaw = wheelAngleTmp;
@@ -149,12 +153,32 @@ void sensorWorker100HzPoller( void* z ) {
       }
 
       wheelAngleTmp -= steerConfig.wheelAngleOffset;
+      steerSetpoints.wheelAnglePreAckermann = wheelAngleTmp;
 
       if (( wheelAngleTmp > 0 && steerConfig.ackermannAboveZero == true ) || 
           ( wheelAngleTmp < 0 && steerConfig.ackermannAboveZero == false )) {
         wheelAngleTmp = ( wheelAngleTmp * steerConfig.ackermann ) / 100;
       }
 
+      if( digitalRead( steerConfig.gpioWasSupplyDetectionPin ) == LOW ){
+        if( WAS_SupplyError == false ){
+          WAS_SupplyError = true;
+          diagnostics.WasPositiveSupplyShortedToGround += 1;
+          saveDiagnostics();
+        }
+      } else {
+        WAS_SupplyError = false;
+      }
+      if( abs( steerSetpoints.actualSteerAngle - wheelAngleTmp ) > 5.00 ){ // a jump of more than 5.00 degrees is a bad sensor
+        if( WAS_Error == false ){
+          WAS_Error = true;
+          showHardwareStateOnAOG( 0x75 );
+          diagnostics.WasPlausibilityErrors += 1;
+          saveDiagnostics();
+        }
+      } else {
+        WAS_Error = false;
+      }
       wheelAngleTmp = wheelAngleSensorFilter.step( wheelAngleTmp );
       steerSetpoints.actualSteerAngle = wheelAngleTmp;
 
@@ -172,16 +196,27 @@ void sensorWorker100HzPoller( void* z ) {
           if( steerConfig.invertRowSense ){
             rowSenseTmp *= ( float ) -1;
           }
-          rowSenseTmp = rowSenseFilter.step( rowSenseTmp );
-          steerSetpoints.rowSenseAngle = rowSenseTmp;
-          steerSetpoints.adjustedSteerAngle = steerSetpoints.actualSteerAngle + steerSetpoints.rowSenseAngle;
+          rowSenseTmp  = rowSenseFilter.step( rowSenseTmp );
+          rowSenseIntegrator += rowSenseTmp * steerConfig.rowSenseKi;
+          rowSenseIntegrator = constrain( rowSenseIntegrator, -steerConfig.rowSenseKiMaxDegrees, steerConfig.rowSenseKiMaxDegrees ); // only limit Ki angle
+          float angle = ( rowSenseTmp * steerConfig.rowSenseKp ) + rowSenseIntegrator; // Kp does not get limited
+          if( angle < steerConfig.rowSenseMinDegrees && angle > -steerConfig.rowSenseMinDegrees ){
+            steerSetpoints.rowSenseAngle = 0.00;
+          } else {
+            if( angle < 0.00 ){
+              steerSetpoints.rowSenseAngle = angle - ( -steerConfig.rowSenseMinDegrees );
+            } else {
+              steerSetpoints.rowSenseAngle = angle - steerConfig.rowSenseMinDegrees;
+            }
+          }
+          steerSetpoints.rowSenseControl = true; // requested steer angle now comes from row sense instead of software
         } else {
           steerSetpoints.rowSenseCounts = 0;
           steerSetpoints.rowSenseAngle = 0.00;
-          steerSetpoints.adjustedSteerAngle = steerSetpoints.actualSteerAngle;
+          steerSetpoints.rowSenseControl = false;
         }
       } else {
-        steerSetpoints.adjustedSteerAngle = steerSetpoints.actualSteerAngle;
+        steerSetpoints.rowSenseControl = false;
       }
     }
     
@@ -208,120 +243,28 @@ void IRAM_ATTR DeereVariableDutyWasIsr() {
 
 void initSensors() {
 
-  Control* handle = ESPUI.getControl( labelStatusAdc );
-  String str;
-  str.reserve( 30 );
+  initialisation.wheelAngleInput = steerConfig.wheelAngleInput;
 
-  switch ( steerConfig.wheelAngleInput ){
+  pinMode( steerConfig.gpioWasSupplyDetectionPin, INPUT );
 
-    case SteerConfig::AnalogIn::CanbusFendt:{
-      str = "Canbus: Fendt WAS initialized";
-      handle->color = ControlColor::Emerald;
-      ESPUI.updateLabel( labelStatusAdc, str );
-    }
-    break;
-
-    case SteerConfig::AnalogIn::CanbusValtraMasseyChallenger:{
-      str = "Canbus: Valtra-Massey-Challenger WAS initialized";
-      handle->color = ControlColor::Emerald;
-      ESPUI.updateLabel( labelStatusAdc, str );
-    }
-    break;
-
-    case SteerConfig::AnalogIn::JDVariableDuty:{
+  switch( steerConfig.wheelAngleInput ) {
+    case SteerConfig::AnalogIn::JDVariableDuty: {
       pinMode( steerConfig.gpioWASPulse, INPUT );
       attachInterrupt( steerConfig.gpioWASPulse, DeereVariableDutyWasIsr, CHANGE );
-      str = "Deere variable duty WAS initialized";
-      handle->color = ControlColor::Emerald;
-      ESPUI.updateLabel( labelStatusAdc, str );
     }
     break;
 
-    default:{
-      ads.setGain( (adsGain_t)steerConfig.adsGain );
-      // ads.setGain(GAIN_TWOTHIRDS);   // 2/3x gain +/- 6.144V  1 bit = 3mV      0.1875mV (default)  
-      // ads.setGain(GAIN_ONE);        // 1x gain   +/- 4.096V  1 bit = 2mV      0.125mV
-      // ads.setGain(GAIN_TWO);        // 2x gain   +/- 2.048V  1 bit = 1mV      0.0625mV
-      // ads.setGain(GAIN_FOUR);       // 4x gain   +/- 1.024V  1 bit = 0.5mV    0.03125mV
-      // ads.setGain(GAIN_EIGHT);      // 8x gain   +/- 0.512V  1 bit = 0.25mV   0.015625mV
-      // ads.setGain(GAIN_SIXTEEN);    // 16x gain  +/- 0.256V  1 bit = 0.125mV  0.0078125mV
+    case SteerConfig::AnalogIn::CanbusFendt:
+    case SteerConfig::AnalogIn::CanbusValtraMasseyChallenger:
+      break;
 
+    default: {
+      ads.setGain( ( adsGain_t )steerConfig.adsGain );
       ads.begin();
       ads.setSPS( ADS1115_DR_860SPS );
-
-      str = "ADS1115 initialized\n";
-
-      handle->color = ControlColor::Emerald;
-      switch ( steerConfig.wheelAngleInput ){
-
-        case SteerConfig::AnalogIn::None:{
-          str += "no input selected\n";
-          handle->color = ControlColor::Alizarin;
-        }
-        break;
-
-        case SteerConfig::AnalogIn::ADS1115A0Single:{
-          str += "A0 single input selected\n";
-        }
-        break;
-
-        case SteerConfig::AnalogIn::ADS1115A1Single:{
-          str += "A1 single input selected\n";
-        }
-        break;
-
-        case SteerConfig::AnalogIn::ADS1115A0A1Differential:{
-          str += "A0/A1 single input selected\n";
-        }
-        break;
-        
-        default:
-          break;
-      }
-
-      switch ( steerConfig.adsGain ){
-
-        case SteerConfig::ADSGain::GAIN_TWOTHIRDS:{
-          str += " max voltage: 6.144\n5v WAS directly connected";
-        }
-        break;
-        
-        case SteerConfig::ADSGain::GAIN_ONE:{
-          str += " max voltage: 4.096\n5v WAS-3.3k-ADS-5.6k-Gnd divider";
-        }
-        break;
-        
-        case SteerConfig::ADSGain::GAIN_TWO:{
-          str += " max voltage: 2.048\nWAS not defined";
-        }
-        break;
-        
-        case SteerConfig::ADSGain::GAIN_FOUR:{
-          str += " max voltage: 1.024\nWAS not defined";
-        }
-        break;
-        
-        case SteerConfig::ADSGain::GAIN_EIGHT:{
-          str += " max voltage: 0.512\nWAS not defined";
-        }
-        break;
-        
-        case SteerConfig::ADSGain::GAIN_SIXTEEN:{
-          str += " max voltage: 0.256\nWAS not defined";
-        }
-        break;
-        
-        default:{
-          str += "voltage range not defined";
-          handle->color = ControlColor::Alizarin;
-        }
-        break;
-      }
-      ESPUI.updateLabel( labelStatusAdc, str );
     }
     break;
   }
-  initialisation.wheelAngleInput = steerConfig.wheelAngleInput;
 
   xTaskCreate( sensorWorker100HzPoller, "sensorWorker100HzPoller", 4096, NULL, 6, NULL );
 }

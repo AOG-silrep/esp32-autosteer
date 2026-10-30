@@ -30,6 +30,7 @@
 #include "jsonFunctions.hpp"
 #include "autosteerState.cpp"
 #include "driver/gpio.h"
+#include <driver/twai.h>  // Native ESP-IDF TWAI driver
 
 #include <string>       // std::string
 #include <sstream>      // std::stringstream
@@ -51,7 +52,7 @@ time_t lastHelloReceivedMillis;
 double pidOutput = 0;
 double pidOutputTmp = 0;
 AutoPID pid(
-        &( steerSetpoints.adjustedSteerAngle ),
+        &( steerSetpoints.actualSteerAngle ),
         &( steerSetpoints.requestedSteerAngle ),
         &( pidOutput ),
         -255, 255,
@@ -61,12 +62,16 @@ constexpr time_t Timeout = 1000;
 uint32_t DRAM_ATTR disengageActivityMicros;
 uint32_t DRAM_ATTR onTime;
 uint32_t DRAM_ATTR offTime;
+bool DRAM_ATTR disengageState = LOW; // bool state = ( GPIO.in >> 23 ) & 0x1;
 
 bool previousAogEnabledState = false;
+bool AogToMachineEngagedMismatch = false; // do not update machine engaged state from AOG after switch change until round trip is completed
 bool ditherDirection = false;
 bool dtcAutosteerPrevious = false;
 bool UDPTimeout = true; // AOG will probably not be running at startup
+uint8_t hydLift = 0;
 uint8_t previousHydLift = 0;
+time_t lastHydLiftMillis = 0;
 
 void ditherWorker10HZ( void* z ) {
 
@@ -101,14 +106,15 @@ void autosteerWorker100Hz( void* z ) {
         if( dtcAutosteerPrevious == false && machine.steerSupplyVoltage < 2172 ){  // 10.8 volts
           diagnostics.steerEnabledWithNoPower += 1;
 
-          Control* labelSteerEngagedFaultsHandle = ESPUI.getControl( labelSteerEngagedFaults );
           String str;
           str.reserve( 30 );
-          str = "Number of faults: ";
-          str += ( int8_t ) diagnostics.steerEnabledWithNoPower;
+          str = "\nNumber of faults: ";
+          str += diagnostics.steerEnabledWithNoPower;
           str += "\nFault active since startup: Yes";
-          labelSteerEngagedFaultsHandle->color = ControlColor::Alizarin;
-          ESPUI.updateLabel( labelSteerEngagedFaults, str );
+          if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+            diagnosticsDisplay.steerEngagedFaults = str;
+            xSemaphoreGive( diagnosticsDisplayMutex );
+          }
           saveDiagnostics();
         }
       }
@@ -196,7 +202,7 @@ void autosteerWorker100Hz( void* z ) {
           ledcWrite( 1, 0 );
           ledcWrite( 2, 0 );
           digitalWrite( steerConfig.gpioEn, LOW );
-          machine.valveOutput = machine.canbusWasCounts;
+          machine.valveOutput = machine.FendtWasCounts;
           steerSetpoints.pidOutput = pidOutputTmp;
         }
         break;
@@ -325,7 +331,7 @@ void autosteerWorker100Hz( void* z ) {
           ledcWrite( 0, abs( pidOutputTmp ));
           ledcWrite( 1, 0 );
           ledcWrite( 2, 0 );
-          machine.valveOutput = machine.canbusWasCounts - ( uint32_t )( pidOutputTmp * 10 ); // Fendt uses 16 bits, otherwise same as VMC family
+          machine.valveOutput = machine.FendtWasCounts - ( uint32_t )( pidOutputTmp * 10 ); // Fendt uses 16 bits
           steerSetpoints.pidOutput = pidOutputTmp;
         }
         break;
@@ -352,7 +358,7 @@ void autosteerWorker100Hz( void* z ) {
       data[4] = 8;    // length of data
 
       {
-        int16_t steerAngle = steerSetpoints.adjustedSteerAngle * 100 ;
+        int16_t steerAngle = steerSetpoints.actualSteerAngle * 100 ;
         data[5] = ( uint16_t )steerAngle;
         data[6] = ( uint16_t )steerAngle >> 8;
       }
@@ -462,7 +468,7 @@ void autosteerWorker100Hz( void* z ) {
       if( ++udpLoopCounter >= 25 ){ // send Hello every 2.5s
         udpLoopCounter = 0;
         uint8_t helloFromAutoSteer[] = { 128, 129, 126, 126, 5, 0, 0, 0, 0, 0, 71 };
-        int16_t steerAngle = ( steerSetpoints.adjustedSteerAngle * 100 );
+        int16_t steerAngle = ( steerSetpoints.actualSteerAngle * 100 );
         helloFromAutoSteer[5] = ( uint8_t )steerAngle;
         helloFromAutoSteer[6] = ( uint8_t )steerAngle >> 8;
 
@@ -488,13 +494,13 @@ void autosteerWorker100Hz( void* z ) {
 void autosteerSwitchesWorker1000Hz( void* z ) {
   constexpr TickType_t xFrequency = 1;
   TickType_t xLastWakeTime = xTaskGetTickCount();
-  bool previousState;
+  bool previousState = digitalRead( ( uint8_t )steerConfig.gpioSteerswitch );
   bool switchState;
-  bool disengagePrevState;
-  int32_t dutyAverage;
-  time_t lastSwitchChangeMillis;
-  time_t disengageActivityMillis;
-  time_t deereDutyMicrosTimeout;
+  bool disengagePrevState = digitalRead( steerConfig.gpioDisengage );
+  int32_t dutyAverage = 0;
+  time_t lastSwitchChangeMillis = millis();
+  time_t disengageActivityMillis = millis();
+  uint32_t deereDutyMicrosTimeout = esp_timer_get_time();
 
   switchState = digitalRead( ( uint8_t )steerConfig.gpioSteerswitch ); // initialize switch state on startup
 
@@ -557,7 +563,8 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
       uint16_t dutyCycle = abs( elapse );
       dutyAverage = ( dutyAverage * 0.9 ) + ( dutyCycle * 0.1 );
       if( abs( dutyAverage - dutyCycle ) > steerConfig.JDVariableDutyChange ){
-        if((( esp_timer_get_time() - deereDutyMicrosTimeout ) / 1000 ) > steerConfig.JDVariableDutyFrameLength ){
+        uint32_t deereDutyElapsedMicros = ( uint32_t )esp_timer_get_time() - deereDutyMicrosTimeout;
+        if( ( deereDutyElapsedMicros / 1000 ) > steerConfig.JDVariableDutyFrameLength ){
           steerState.setDisengage( true );
           machine.disengagedBySteeringWheel = true;
           machine.lastDisengageMillis = millis();
@@ -601,13 +608,12 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
 
 static void IRAM_ATTR disengageIsr( void* arg ) {
   // interrupt service routine for the steering wheel
-  static bool state = LOW; // bool state = ( GPIO.in >> 23 ) & 0x1;
-  if( state == LOW ){
+  if( disengageState == LOW ){
     onTime = esp_timer_get_time() - disengageActivityMicros;
   } else {
     offTime = esp_timer_get_time() - disengageActivityMicros;
   }
-  state = !state;
+  disengageState = !disengageState;
   disengageActivityMicros = esp_timer_get_time();
 }
 
@@ -632,35 +638,48 @@ void initAutosteer() {
           }
           steerState.speed = steerSetpoints.speed;
           steerState.fromSoftware( data[7] );
-          steerSetpoints.requestedSteerAngle = (( double ) ((( int16_t )data[8]) | (( int8_t )data[9] << 8 ))) * 0.01; //horrible code to make negative doubles work
+          if( steerSetpoints.rowSenseControl ){
+            steerSetpoints.requestedSteerAngle = steerSetpoints.rowSenseAngle;
+          } else {
+            steerSetpoints.requestedSteerAngle = (( double ) ((( int16_t )data[8]) | (( int8_t )data[9] << 8 ))) * 0.01; //horrible code to make negative doubles work
+          }
 
+          if( data[10] == 255 ){ // no guidance line, or autosteer off in AgOpenGPS
+            steerSetpoints.xteValid = false;
+          } else {
+            steerSetpoints.xteCm = (( int16_t )data[10] - 127 ) * 2; // 2 cm steps, offset by 127
+            steerSetpoints.xteValid = true;
+          }
+
+          steerSetpoints.previousPacketReceived = steerSetpoints.lastPacketReceived;
           steerSetpoints.lastPacketReceived = millis();
         }
         break;
         
         case 0x7FEF: { // Machine message
           if( steerConfig.canbusHmsVersion == SteerConfig::HmsVersion::DeereHex18FFFA21 && steerConfig.canBusEnabled ){
-            uint8_t hydLift = data[7];
-            if( hydLift != 0 ){ // enabled in AOG
-              if( hydLift != previousHydLift ){
-                previousHydLift = hydLift;
-                CAN_frame_t canFrame;
-                canFrame.MsgID = 0x18FFFA21;
-                canFrame.FIR.B.FF = CAN_frame_ext;
-                canFrame.FIR.B.DLC = 8;
-                canFrame.data.u8[0] = 0xFE;
-                canFrame.data.u8[1] = 0x34;
+            hydLift = data[7];
+            if( hydLift != previousHydLift ){
+              previousHydLift = hydLift;
+              lastHydLiftMillis = millis();
+              if( hydLift != 0 ){ // enabled in AOG
+                twai_message_t message = {};
+                message.identifier = 0x18FFFA21;
+                message.flags = TWAI_MSG_FLAG_EXTD;
+                message.data_length_code = 8;
+                message.data[0] = 0xFE;
+                message.data[1] = 0x34;
                 if( hydLift == 2 ){
-                  canFrame.data.u8[2] = 0x02;
+                  message.data[2] = 0x02;
                 } else {
-                  canFrame.data.u8[2] = 0x01;
+                  message.data[2] = 0x01;
                 }
-                canFrame.data.u8[3] = 0x00;
-                canFrame.data.u8[4] = 0xFF;
-                canFrame.data.u8[5] = 0xFF;
-                canFrame.data.u8[6] = 0xFF;
-                canFrame.data.u8[7] = 0xFF;
-                ESP32Can.CANWriteFrame( &canFrame );
+                message.data[3] = 0x00;
+                message.data[4] = 0xFF;
+                message.data[5] = 0xFF;
+                message.data[6] = 0xFF;
+                message.data[7] = 0xFF;
+                twai_transmit(&message, pdMS_TO_TICKS(10));
               }
             }
           }
@@ -700,6 +719,7 @@ void initAutosteer() {
             lastHelloReceivedMillis = millis();
           }
         }
+        break;
 
         default:
           break;
@@ -783,10 +803,13 @@ void initAutosteer() {
   if( machine.canbusSteeringActive == true ){
     String str;
     str.reserve( 30 );
-    str = "N/A in CANbus steering";
-    
-    ESPUI.updateLabel( labelSteerEngagedFaults, str );
-    ESPUI.updateLabel( labelSupplyVoltage, str );
+    str = "\nN/A in CANbus steering";
+
+    if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+      diagnosticsDisplay.steerEngagedFaults = str;
+      diagnosticsDisplay.supplyVoltage = str;
+      xSemaphoreGive( diagnosticsDisplayMutex );
+    }
   }
 
   pinMode( steerConfig.gpioWorkswitch, INPUT_PULLUP );

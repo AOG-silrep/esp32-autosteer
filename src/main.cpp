@@ -29,7 +29,6 @@
 #include <ESPmDNS.h>
 #include <WiFi.h>
 
-#include <DNSServer.h>
 #include <ESPUI.h>
 
 #include <AsyncElegantOTA.h>
@@ -39,26 +38,34 @@
 ///////////////////////////////////////////////////////////////////////////
 
 Diagnostics diagnostics;
+DiagnosticsDisplay diagnosticsDisplay;
 SteerConfig steerConfig, steerConfigDefaults;
 Initialisation initialisation;
 SteerCanData steerCanData = {0};
 Machine machine;
 Safety safety;
 
-portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 SemaphoreHandle_t i2cMutex;
+SemaphoreHandle_t diagnosticsDisplayMutex;
+SemaphoreHandle_t wasCalibrationMutex;
+TimerHandle_t saveTimer;
+bool saveConfigRequested = false;
 
-const byte DNS_PORT = 53;
-IPAddress apIP( 192, 168, 1, 1 );
+IPAddress wifiIP( 192, 168, 1, 1 );
+
 
 ///////////////////////////////////////////////////////////////////////////
 // external Libraries
 ///////////////////////////////////////////////////////////////////////////
-DNSServer dnsServer;
 
 ///////////////////////////////////////////////////////////////////////////
 // Application
 ///////////////////////////////////////////////////////////////////////////
+void saveTimerCallback( TimerHandle_t xTimer ) {
+  // Set flag to save config from main task, not from ISR
+  saveConfigRequested = true;
+}
+
 void setup( void ) {
   Serial.begin( 115200 );
 
@@ -80,46 +87,30 @@ void setup( void ) {
   digitalWrite( steerConfig.apModePin, LOW );
 
   initWiFi();
-  apIP = WiFi.localIP();
-
-  dnsServer.start( DNS_PORT, "*", apIP );
 
   Serial.println( "\n\nWiFi parameters:" );
   Serial.print( "Mode: " );
-  Serial.println( WiFi.getMode() == WIFI_AP ? "Station" : "Client" );
+  if( WiFi.getMode() == WIFI_AP_STA ){
+    Serial.println( "access point" );
+    wifiIP = WiFi.softAPIP();
+  } else {
+    Serial.println( "client" );
+    wifiIP = WiFi.localIP();
+  }
   Serial.print( "IP address: " );
-  Serial.println( WiFi.getMode() == WIFI_AP ? WiFi.softAPIP() : WiFi.localIP() );
+  Serial.println( wifiIP );
 
   i2cMutex = xSemaphoreCreateMutex();
-
-  /*
-  * .begin loads and serves all files from PROGMEM directly.
-  * If you want to serve the files from LittleFS use ESPUI.beginLittleFS
-  * (.prepareFileSystem has to be run in an empty sketch before)
-  */
-
-  /*
-  * Optionally you can use HTTP BasicAuth. Keep in mind that this is NOT a
-  * SECURE way of limiting access.
-  * Anyone who is able to sniff traffic will be able to intercept your password
-  * since it is transmitted in cleartext. Just add a username and password,
-  * for example begin("ESPUI Control", "username", "password")
-  */
+  diagnosticsDisplayMutex = xSemaphoreCreateMutex();
+  wasCalibrationMutex = xSemaphoreCreateMutex();
+  saveTimer = xTimerCreate( "SaveTimer", pdMS_TO_TICKS( 10000 ), pdFALSE, NULL, saveTimerCallback ); // save after 10 seconds of inactivity
 
   if( ( SteerConfig::OutputType ) steerConfig.outputType >= SteerConfig::OutputType::Canbus13_19Controller ||
       ( SteerConfig::AnalogIn ) steerConfig.wheelAngleInput >= SteerConfig::AnalogIn::CanbusValtraMasseyChallenger ){
     machine.canbusSteeringActive = true;
   }
   initESPUI();
-
-  {
-  String str;
-  str.reserve( 30 );
-  str = "Number of faults: ";
-  str += ( uint8_t ) diagnostics.steerEnabledWithNoPower;
-  str += "\nFault active since startup: No";
-  ESPUI.updateLabel( labelSteerEngagedFaults, str );
-  }
+  initWebServerFunctions();
 
   AsyncElegantOTA.begin( ESPUI.WebServer() );
 
@@ -127,6 +118,7 @@ void setup( void ) {
   initCan();
   initSensors();
   initAutosteer();
+  initWasCalibration();
   initDiagnostics();
 
   if( !MDNS.begin( "steering" )){
@@ -135,6 +127,10 @@ void setup( void ) {
 }
 
 void loop( void ) {
-  dnsServer.processNextRequest();
+  if( saveConfigRequested ) {
+    saveConfigRequested = false;
+    saveConfig();
+    Serial.println( "Config saved after 10 seconds" );
+  }
   vTaskDelay( 100 );
 }

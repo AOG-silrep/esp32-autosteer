@@ -30,46 +30,58 @@
 #include <AsyncUDP.h>
 
 #include <ESPUI.h>
-#include <ESP32CAN.h>
 
 #include <Wire.h>
 
-#include "average.hpp"
-
+extern bool AogToMachineEngagedMismatch;
 extern int8_t ditherAmount; // variable gets reset upon user changing dither
+extern uint8_t hydLift;
+extern time_t lastHydLiftMillis;
 
 extern uint16_t labelLoad;
 extern uint16_t labelWheelAngle;
-extern uint16_t labelSafetyDisableAutosteer;
-extern uint16_t labelSupplyVoltage;
-extern uint16_t labelSteerMotorCurrent;
-extern uint16_t labelSteerEngagedFaults;
-extern uint16_t labelSwitchStates;
 extern uint16_t labelRowSense;
 
-extern uint16_t labelAgOpenGpsAddress;
 extern uint16_t labelStatusOutput;
-extern uint16_t labelStatusAdc;
 extern uint16_t labelStatusCanESP32;
 extern uint16_t labelStatusCanMCP2515;
 extern uint16_t manualValveSwitcher;
 extern uint16_t manualValvePWMWidget;
+extern uint16_t numberWasCenter;
+extern uint16_t numberWasOffset;
 
 extern SemaphoreHandle_t i2cMutex;
+extern SemaphoreHandle_t diagnosticsDisplayMutex;
+extern SemaphoreHandle_t wasCalibrationMutex;
+extern TimerHandle_t saveTimer;
 extern TaskHandle_t canReceiverHandle;
 extern TaskHandle_t canSenderHandle;
 extern IPAddress ipDestination; //IP address to send UDP data to
 extern time_t lastHelloReceivedMillis;
+extern AsyncUDP udpHardwareMessage;
 
 struct Diagnostics {
   double steerSupplyVoltageMin;
   double steerSupplyVoltageMax;
-  int8_t steerEnabledWithNoPower;
-  int8_t fuse1Shorted;
-  int8_t fuse2Shorted;
-  uint8_t UDPTimeout; // how many times AgOpenGPS steering UDP timed out
+  uint16_t steerEnabledWithNoPower;
+  uint16_t fuse2Shorted;
+  uint16_t WasPositiveSupplyShortedToGround;
+  uint16_t WasPlausibilityErrors;
+  uint16_t UDPTimeout; // how many times AgOpenGPS steering UDP timed out
 };
 extern Diagnostics diagnostics;
+
+struct DiagnosticsDisplay {
+  String agOpenGpsAddress;
+  String safetyDisableAutosteer;
+  String supplyVoltage;
+  String steerMotorCurrent;
+  String steerEngagedFaults;
+  String wheelAngleSensor;
+  String switchStates;
+  String implementStates;
+};
+extern DiagnosticsDisplay diagnosticsDisplay;
 ///////////////////////////////////////////////////////////////////////////
 // Configuration
 ///////////////////////////////////////////////////////////////////////////
@@ -91,8 +103,9 @@ struct Machine {
   time_t lastAutosteerMillis = 0; // last time autosteer input changed
   bool workswitchState = false; // current state of workswitch
   uint8_t canbusSteeringState = 0; // machine canbus steering state (receive only)
-  uint16_t valveOutput; // output of the pid controller, after valve specific processing
+  int16_t valveOutput; // output of the pid controller, after valve specific processing
   uint16_t canbusWasCounts; // Wheel Angle Sensor counts from canbus
+  int16_t FendtWasCounts; // Fendt specific WAS counts from canbus, which have a center of 65535-0
   uint16_t handwheelPulseCount; // handwheel encoder counts
   uint16_t DeereDutyCycle; // duty cycle of Deere variable duty PWM disengage sensor
   uint16_t DeereDutyAverage; // average duty cycle of Deere variable duty PWM disengage sensor
@@ -125,6 +138,10 @@ struct SteerConfig {
   bool enableRowSense = false;
   uint16_t rowSenseCountsPerDegree;
   uint16_t rowSensePositionZero;
+  int16_t rowSenseMinDegrees;
+  float rowSenseKi;
+  int16_t rowSenseKiMaxDegrees;
+  float rowSenseKp;
   bool invertRowSense;
 
   enum class SpeedUnits : int8_t {
@@ -201,6 +218,7 @@ struct SteerConfig {
   uint8_t gpioDisengagePullup = 32; // pullup driver for heavy duty disengage switches
   uint8_t gpioWASPulse = 39;
   uint8_t gpioSteerSupplyVoltage = 34;
+  uint8_t gpioWasSupplyDetectionPin = 36;
   uint16_t disengageFramePulses = 3;
   uint16_t disengageFrameMillis = 1000;
   bool disengageHeavyDuty = false;
@@ -313,22 +331,25 @@ extern SteerSettings steerSettings;
 struct SteerSetpoints {
   uint8_t relais = 0;
   float speed = 0;
-  uint16_t distanceFromLine = 32020;
+  int16_t xteCm = 0; // cross track error from AgOpenGPS, 2 cm resolution
+  bool xteValid = false; // false when AgOpenGPS has no guidance line or autosteer is off
   double requestedSteerAngle = 0;
 
   bool enabled = false;
   time_t lastEngagedChangeMillis = 0;
   float receivedRoll = 0;
   double actualSteerAngle = 0;
-  double adjustedSteerAngle = 0;
   uint16_t rowSenseCounts = 0;
-  double rowSenseAngle; // row sense feedback for header->WAS offset
+  double rowSenseAngle; // row sense feedback from header for autosteer requested angle
+  bool rowSenseControl = false; // true if row sensors connected, within valid range, and row sense enabled
   double wheelAngleCounts = 0;
   double wheelAngleCurrentDisplacement = 0;
   double wheelAngleRaw = 0;
+  double wheelAnglePreAckermann = 0; // after invert and offset, before Ackermann
   double pidOutput = 0;
   float correction = 0;
 
+  time_t previousPacketReceived = 0;
   time_t lastPacketReceived = 0;
 };
 extern SteerSetpoints steerSetpoints;
@@ -363,28 +384,24 @@ extern SteerCanData steerCanData;
 extern AsyncUDP udpSendFrom;
 
 ///////////////////////////////////////////////////////////////////////////
-// Helper Classes
-///////////////////////////////////////////////////////////////////////////
-extern portMUX_TYPE mux;
-class TCritSect {
-    TCritSect() {
-      portENTER_CRITICAL( &mux );
-    }
-    ~TCritSect() {
-      portEXIT_CRITICAL( &mux );
-    }
-};
-
-///////////////////////////////////////////////////////////////////////////
 // Helper Functions
 ///////////////////////////////////////////////////////////////////////////
-extern void setResetButtonToRed();
+extern char downloadFilename[50];
 
 extern void initESPUI();
+extern void initWebServerFunctions();
 extern void initIdleStats();
 extern void initSensors();
 extern void initCan();
 extern void initAutosteer();
 extern void initWiFi();
 extern void initDiagnostics();
-extern void showCanbusStateOnAOG();
+extern void initWasCalibration();
+extern void wasCalibrationStart();
+extern void wasCalibrationReset();
+extern bool wasCalibrationApply();
+extern String wasCalibrationJson();
+extern String wasCalibrationNudgeHint();
+extern void saveConfigAfterDelay();
+extern void sendAogMessage( const String& text, bool alarm = false );
+extern void showHardwareStateOnAOG( uint8_t );

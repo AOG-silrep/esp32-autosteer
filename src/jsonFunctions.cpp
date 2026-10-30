@@ -82,7 +82,7 @@ json loadJsonFromFile( const char* fileName ) {
       file.read( data.data(), file.size() );
 
       try {
-        j = json::parse( data/*, nullptr, false*/ );
+        j = json::parse( data );
       } catch( json::exception& e ) {
         // output exception information
         Serial.print( "message: " );
@@ -125,7 +125,8 @@ json parseDiagnosticsToJson( const Diagnostics& diagnostics ) {
   j["steerSupplyVoltageMax"] = diagnostics.steerSupplyVoltageMax;
   j["steerSupplyVoltageMin"] = diagnostics.steerSupplyVoltageMin;
   j["steerEnabledWithNoPower"] = diagnostics.steerEnabledWithNoPower;
-  j["fuse1Shorted"] = diagnostics.fuse1Shorted;
+  j["WasPlausibilityErrors"] = diagnostics.WasPlausibilityErrors;
+  j["WasPositiveSupplyShortedToGround"] = diagnostics.WasPositiveSupplyShortedToGround;
   j["fuse2Shorted"] = diagnostics.fuse2Shorted;
 
   return j;
@@ -138,7 +139,8 @@ void parseJsonToDiagnostics( json& j, Diagnostics& diagnostics ) {
       diagnostics.steerSupplyVoltageMax = j.value( "/steerSupplyVoltageMax"_json_pointer, 0 );
       diagnostics.steerSupplyVoltageMin = j.value( "/steerSupplyVoltageMin"_json_pointer, 0 );
       diagnostics.steerEnabledWithNoPower = j.value( "/steerEnabledWithNoPower"_json_pointer, 0 );
-      diagnostics.fuse1Shorted = j.value( "/fuse1Shorted"_json_pointer, 0 );
+      diagnostics.WasPlausibilityErrors = j.value( "/WasPlausibilityErrors"_json_pointer, 0 );
+      diagnostics.WasPositiveSupplyShortedToGround = j.value( "/WasPositiveSupplyShortedToGround"_json_pointer, 0 );
       diagnostics.fuse2Shorted = j.value( "/fuse2Shorted"_json_pointer, 0 );
 
     } catch( json::exception& e ) {
@@ -204,6 +206,10 @@ json parseSteerConfigToJson( const SteerConfig& config ) {
   j["rowsense"]["enabled"] = config.enableRowSense;
   j["rowsense"]["countsPerDegree"] = config.rowSenseCountsPerDegree;
   j["rowsense"]["positionZero"] = config.rowSensePositionZero;
+  j["rowsense"]["minDegrees"] = config.rowSenseMinDegrees;
+  j["rowsense"]["Kp"] = config.rowSenseKp;
+  j["rowsense"]["Ki"] = config.rowSenseKi;
+  j["rowsense"]["KiMaxDegrees"] = config.rowSenseKiMaxDegrees;
   j["rowsense"]["invert"] = config.invertRowSense;
 
   j["canBus"]["enabled"] = config.canBusEnabled;
@@ -231,17 +237,17 @@ void parseJsonToSteerConfig( json& j, SteerConfig& config ) {
       {
         std::string str = j.value( "/wifi/ssid"_json_pointer, steerConfigDefaults.ssid );
         memset( config.ssid, 0, sizeof( config.ssid ) );
-        memcpy( config.ssid, str.c_str(), str.size() );
+        memcpy( config.ssid, str.c_str(), min( str.size(), sizeof( config.ssid ) - 1 ) );
       }
       {
         std::string str = j.value( "/wifi/password"_json_pointer, steerConfigDefaults.password );
         memset( config.password, 0, sizeof( config.password ) );
-        memcpy( config.password, str.c_str(), str.size() );
+        memcpy( config.password, str.c_str(), min( str.size(), sizeof( config.password ) - 1 ) );
       }
       {
         std::string str = j.value( "/wifi/hostname"_json_pointer, steerConfigDefaults.hostname );
         memset( config.hostname, 0, sizeof( config.hostname ) );
-        memcpy( config.hostname, str.c_str(), str.size() );
+        memcpy( config.hostname, str.c_str(), min( str.size(), sizeof( config.hostname ) - 1 ) );
       }
       config.retainWifiSettings = j.value( "/wifi/retainSettings"_json_pointer, steerConfigDefaults.retainWifiSettings );
 
@@ -289,6 +295,10 @@ void parseJsonToSteerConfig( json& j, SteerConfig& config ) {
       config.enableRowSense = j.value( "/rowsense/enabled"_json_pointer, steerConfigDefaults.enableRowSense );
       config.rowSenseCountsPerDegree = j.value( "/rowsense/countsPerDegree"_json_pointer, steerConfigDefaults.rowSenseCountsPerDegree );
       config.rowSensePositionZero = j.value( "/rowsense/positionZero"_json_pointer, steerConfigDefaults.rowSensePositionZero );
+      config.rowSenseMinDegrees = j.value( "/rowsense/minDegrees"_json_pointer, steerConfigDefaults.rowSenseMinDegrees );
+      config.rowSenseKp = j.value( "/rowsense/Kp"_json_pointer, steerConfigDefaults.rowSenseKp );
+      config.rowSenseKi = j.value( "/rowsense/Ki"_json_pointer, steerConfigDefaults.rowSenseKi );
+      config.rowSenseKiMaxDegrees = j.value( "/rowsense/KiMaxDegrees"_json_pointer, steerConfigDefaults.rowSenseKiMaxDegrees );
       config.invertRowSense = j.value( "/rowsense/invert"_json_pointer, steerConfigDefaults.invertRowSense );
 
       config.canBusEnabled = j.value( "/canBus/enabled"_json_pointer, steerConfigDefaults.canBusEnabled );

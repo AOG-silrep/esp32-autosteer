@@ -12,10 +12,9 @@ void diagnosticWorker1Hz( void* z ) {
   for( ;; ) {
 
     {
-      Control* labelSafetyDisableAutosteerHandle = ESPUI.getControl( labelSafetyDisableAutosteer );
       String str;
-      str.reserve( 30 );
-      str = "Speed: ";
+      str.reserve( 220 );
+      str = "\nSpeed: ";
       str += ( float )steerSetpoints.speed;
       if( ( SteerConfig::SpeedUnits )steerConfig.speedUnits == SteerConfig::SpeedUnits::MilesPerHour ) {
         str += " MPH";
@@ -28,6 +27,8 @@ void diagnosticWorker1Hz( void* z ) {
       str += ( bool )safety.autosteerDisabledByMaxEngageSpeed ? "Yes" : "No" ;
       str += "\nDisabled by min speed: ";
       str += ( bool )steerSetpoints.speed < steerConfig.minAutosteerSpeed ? "Yes" : "No" ;
+      str += "\nDisabled by safety lock: ";
+      str += ( bool )machine.autosteerSafetyLock ? "Yes" : "No" ;
       str += "\nDisabled by steering wheel: ";
       if( machine.disengagedBySteeringWheel ){
         str += "Yes ";
@@ -38,19 +39,16 @@ void diagnosticWorker1Hz( void* z ) {
         str += " seconds ago";
 
       } else str += "No";
-      if( safety.AOGEnableAutosteerTimeout || 
-          safety.autosteerDisabledByMaxEngageSpeed || 
-          machine.disengagedBySteeringWheel ){
-        labelSafetyDisableAutosteerHandle->color = ControlColor::Alizarin;
-      } else {
-        labelSafetyDisableAutosteerHandle->color = ControlColor::Emerald;
+      if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+        diagnosticsDisplay.safetyDisableAutosteer = str;
+        xSemaphoreGive( diagnosticsDisplayMutex );
       }
-      ESPUI.updateLabel( labelSafetyDisableAutosteer, str );
     }
     if( machine.canbusSteeringActive == false ){ // voltage monitoring during legacy steering only
       String str;
-      str.reserve( 30 );
-      str = ( uint16_t ) machine.steerSupplyVoltage ;
+      str.reserve( 120 );
+      str = "\n";
+      str += ( uint16_t ) machine.steerSupplyVoltage ;
       str += " counts; ";
       str += ( double ) ( ( double ) ( machine.steerSupplyVoltage * 4.54 ) / 913 ); //divide by 913 for ESP32; 10k/2.2k = 4.54
       str += " volts\n";
@@ -58,23 +56,41 @@ void diagnosticWorker1Hz( void* z ) {
       str += " volts min while steering\n";
       str += ( double ) ( ( double ) ( diagnostics.steerSupplyVoltageMax * 4.54 ) / 913 );
       str += " volts max while steering";
-      ESPUI.updateLabel( labelSupplyVoltage, str );
+      if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+        diagnosticsDisplay.supplyVoltage = str;
+        xSemaphoreGive( diagnosticsDisplayMutex );
+      }
     }
     {
       String str;
-      str.reserve( 30 );
-      str = "Current: ";
+      str.reserve( 40 );
+      str = "\nCurrent: ";
       str += ( uint16_t ) machine.steerMotorCurrent;
       str += "\nOverlimit: ";
       str += ( machine.steerMotorCurrent > steerConfig.maxSteerCurrent ) ? "Yes" : "No";
-      ESPUI.updateLabel( labelSteerMotorCurrent, str );
+      if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+        diagnosticsDisplay.steerMotorCurrent = str;
+        xSemaphoreGive( diagnosticsDisplayMutex );
+      }
     }
     {
       String str;
-      str.reserve( 30 );
+      str.reserve( 80 );
+      str = "\nPlausibility errors: ";
+      str += diagnostics.WasPlausibilityErrors;
+      str += "\nPower supply shorted to ground: ";
+      str += diagnostics.WasPositiveSupplyShortedToGround;
+      if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+        diagnosticsDisplay.wheelAngleSensor = str;
+        xSemaphoreGive( diagnosticsDisplayMutex );
+      }
+    }
+    {
+      String str;
+      str.reserve( 120 );
       if( steerConfig.wheelAngleInput == SteerConfig::AnalogIn::CanbusFendt ){
         str = "Fendt Canbus WAS counts: ";
-        str += ( uint16_t )machine.canbusWasCounts;
+        str += ( uint16_t )machine.FendtWasCounts;
         str += "\nActual: ";
         str += ( float )steerSetpoints.actualSteerAngle;
         str += "°, SetPoint: ";
@@ -136,9 +152,9 @@ void diagnosticWorker1Hz( void* z ) {
     }
     {
       String str;
-      str.reserve( 30 );
+      str.reserve( 160 );
       if( steerConfig.outputType == SteerConfig::OutputType::Canbus13_19Controller ){
-        str = "Canbus steer state: ";
+        str = "\nCanbus steer state: ";
         time_t elapsed = millis() - machine.lastCanbusSteeringMillis;
         if( digitalRead( ( uint8_t )steerConfig.gpioSteerswitch ) == steerConfig.steerswitchActiveLow ){
           str += "override switch pressed";
@@ -187,12 +203,9 @@ void diagnosticWorker1Hz( void* z ) {
           }
         }
       } else {
-        if( steerConfig.steerSwitchIsMomentary == true ){
-          str = "Momentary steer switch: ";
-        } else {
-          str = "Maintained steer switch: ";
-        }
-        str += ( bool )( digitalRead( steerConfig.gpioSteerswitch ) == steerConfig.steerswitchActiveLow ) ? "On " : "Off " ;
+        str = steerConfig.steerSwitchIsMomentary ? "\nMomentary" : "\nMaintained";
+        str += " steer switch: ";
+        str += ( bool )( digitalRead( steerConfig.gpioSteerswitch ) != steerConfig.steerswitchActiveLow ) ? "On " : "Off " ;
         time_t elapsed = millis() - machine.lastAutosteerMillis;
         if( elapsed < 1000 ){
           str += ( time_t )elapsed;
@@ -207,12 +220,12 @@ void diagnosticWorker1Hz( void* z ) {
         str += ( bool ) machine.workswitchState ? "On" : "Off" ;
       } else {
         str += "\nWork switch: ";
-        str += ( bool )( digitalRead( steerConfig.gpioWorkswitch ) == steerConfig.workswitchActiveLow ) ? "On" : "Off" ;
+        str += ( bool )( digitalRead( steerConfig.gpioWorkswitch ) != steerConfig.workswitchActiveLow ) ? "On" : "Off" ;
       }
       switch( steerConfig.disengageSwitchType ) {
         case SteerConfig::DisengageSwitchType::Encoder: {
           str += "\nEncoder on steering wheel: ";
-          str += ( bool )digitalRead( steerConfig.gpioDisengage ) ? "On" : "Off" ;
+          str += ( bool )digitalRead( steerConfig.gpioDisengage ) ? "Off" : "On" ; // disengage is inverted
           str += " / ";
           str += machine.handwheelPulseCount;
           str += " counts";
@@ -221,7 +234,7 @@ void diagnosticWorker1Hz( void* z ) {
 
         case SteerConfig::DisengageSwitchType::Hydraulic: {
           str += "\nHydraulic disengage switch: ";
-          str += ( bool )( digitalRead( steerConfig.gpioDisengage ) != steerConfig.hydraulicSwitchActiveLow ) ? "On" : "Off" ;
+          str += ( bool )( digitalRead( steerConfig.gpioDisengage ) == steerConfig.hydraulicSwitchActiveLow ) ? "On" : "Off" ;
         }
         break;
 
@@ -243,14 +256,36 @@ void diagnosticWorker1Hz( void* z ) {
           str += " seconds ago";
         }
       }
-      ESPUI.updateLabel( labelSwitchStates, str );
+      if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+        diagnosticsDisplay.switchStates = str;
+        xSemaphoreGive( diagnosticsDisplayMutex );
+      }
+    }
+    {
+      String str;
+      str.reserve( 50 );
+      str = "\nTool lift ";
+      if( hydLift == 0 ){
+        str = "disabled ";
+      } else if( hydLift == 1 ){
+        str = "down ";
+      } else if( hydLift == 2 ){
+        str = "up ";
+      }
+      time_t elapsed = ( millis() - lastHydLiftMillis ) / 1000;
+      str += ( time_t )elapsed;
+      str += " seconds ago";
+      if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+        diagnosticsDisplay.implementStates = str;
+        xSemaphoreGive( diagnosticsDisplayMutex );
+      }
     }
     {
       switch( steerConfig.outputType ) {
         case SteerConfig::OutputType::SteeringMotorIBT2: {
           Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );
           String str;
-          str.reserve( 30 );
+          str.reserve( 150 );
           str = "IBT2 Motor, SetPoint: ";
           str += ( float )steerSetpoints.requestedSteerAngle;
           str += "°,\ntimeout: ";
@@ -267,7 +302,7 @@ void diagnosticWorker1Hz( void* z ) {
         case SteerConfig::OutputType::SteeringMotorCytron: {
           Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );
           String str;
-          str.reserve( 30 );
+          str.reserve( 150 );
           str = "Cytron Motor, SetPoint: ";
           str += ( float )steerSetpoints.requestedSteerAngle;
           str += "°\ntimeout: ";
@@ -284,7 +319,7 @@ void diagnosticWorker1Hz( void* z ) {
         case SteerConfig::OutputType::HydraulicPwm2Coil: {
           Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );
           String str;
-          str.reserve( 30 );
+          str.reserve( 150 );
           str = "IBT2 Hydraulic PWM 2 Coil, SetPoint: ";
           str += ( float )steerSetpoints.requestedSteerAngle;
           str += "°,\ntimeout: ";
@@ -303,7 +338,7 @@ void diagnosticWorker1Hz( void* z ) {
         case SteerConfig::OutputType::HydraulicDanfoss: {
           Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );
           String str;
-          str.reserve( 30 );
+          str.reserve( 150 );
           str = "IBT2 Hydraulic Danfoss, SetPoint: ";
           str += ( float )steerSetpoints.requestedSteerAngle;
           str += "°,\ntimeout: ";
@@ -320,7 +355,7 @@ void diagnosticWorker1Hz( void* z ) {
         case SteerConfig::OutputType::HydraulicBangBang: {
           Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );
           String str;
-          str.reserve( 30 );
+          str.reserve( 150 );
           str = "IBT2 Hydraulic Bang Bang, SetPoint: ";
           str += ( float )steerSetpoints.requestedSteerAngle;
           str += "°,\ntimeout: ";
@@ -337,7 +372,7 @@ void diagnosticWorker1Hz( void* z ) {
         case SteerConfig::OutputType::Canbus13_19Controller: {
           Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );
           String str;
-          str.reserve( 30 );
+          str.reserve( 150 );
           str = "Canbus 13/19 Controller, SetPoint: ";
           str += ( float )steerSetpoints.requestedSteerAngle;
           str += "°,\ntimeout: ";
@@ -354,7 +389,7 @@ void diagnosticWorker1Hz( void* z ) {
         case SteerConfig::OutputType::CanbusF0_240Controller: {
           Control* labelStatusOutputHandle = ESPUI.getControl( labelStatusOutput );
           String str;
-          str.reserve( 30 );
+          str.reserve( 150 );
           str = "Canbus F0/240 Controller, SetPoint: ";
           str += ( float )steerSetpoints.requestedSteerAngle;
           str += "°,\ntimeout: ";
@@ -376,24 +411,28 @@ void diagnosticWorker1Hz( void* z ) {
         }
     }
     
-    Control* labelAgOpenGpsAddressHandle = ESPUI.getControl( labelAgOpenGpsAddress );
     time_t seconds = ( millis() - lastHelloReceivedMillis ) / 1000;
     String str;
-    str.reserve( 30 );
-    str = ipDestination.toString();
-    str += "\n";
+    str.reserve( 150 );
+    str = "\nIP Address ";
+    str += ipDestination.toString();
+    str += " ";
     str += ( String )seconds;
     str += " seconds ago\n";
     str += diagnostics.UDPTimeout;
-    str += " UDP timeouts";
-    labelAgOpenGpsAddressHandle->value = str;
-    if( seconds > 5 ){
-      labelAgOpenGpsAddressHandle->color = ControlColor::Alizarin;
+    str += " UDP timeouts\nUDP received ";
+    if( millis() - steerSetpoints.lastPacketReceived > 1000 ){
+      str += ( String )(( millis() - steerSetpoints.lastPacketReceived ) / 1000 );
+      str += " seconds ago";
     } else {
-      labelAgOpenGpsAddressHandle->color = ControlColor::Turquoise;
+      str += ( String )( steerSetpoints.lastPacketReceived - steerSetpoints.previousPacketReceived );
+      str += " millis apart";
     }
-    ESPUI.updateControl( labelAgOpenGpsAddressHandle );
-    
+    if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+      diagnosticsDisplay.agOpenGpsAddress = str;
+      xSemaphoreGive( diagnosticsDisplayMutex );
+    }
+
     Control* labelRowSenseHandle = ESPUI.getControl( labelRowSense );
     if( steerConfig.enableRowSense ){
       str = "Voltage: ";
@@ -420,5 +459,16 @@ void diagnosticWorker1Hz( void* z ) {
 }
 
 void initDiagnostics() {
+
+  String str;
+  str.reserve( 30 );
+  str = "\nNumber of faults: ";
+  str += diagnostics.steerEnabledWithNoPower;
+  str += "\nFault active since startup: No";
+  if( xSemaphoreTake( diagnosticsDisplayMutex, pdMS_TO_TICKS( 50 )) == pdTRUE ) {
+    diagnosticsDisplay.steerEngagedFaults = str;
+    xSemaphoreGive( diagnosticsDisplayMutex );
+  }
+
   xTaskCreate( diagnosticWorker1Hz, "diagnosticWorker", 3096, NULL, 3, NULL );
 }
