@@ -416,12 +416,12 @@ void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
       }
       if( rxId == engageMessage ){
         if( rxBuf[0] == 0x0F && rxBuf[1] == 0x60 && rxBuf[2] == 0x01 ){
-          steerState.setDisengage( false ); // clear disengage first, fromHardware locks out while disengaged
-          if( steerState.getHardwareState() == false ) {
+          if( canEngageMessage == false ) { // engage on the off to on change only, in case the tractor repeats this message
+            steerState.setDisengage( false ); // clear disengage first, fromHardware locks out while disengaged
             steerState.fromHardware( true );
+            machine.disengagedBySteeringWheel = false;
           }
           canEngageMessage = true;
-          machine.disengagedBySteeringWheel = false;
         } else if( rxBuf[0] == 0x0F && rxBuf[1] == 0x60 && rxBuf[2] == 0x40 ){
           canEngageMessage = false;
           steerState.setDisengage( true );
