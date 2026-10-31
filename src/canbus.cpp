@@ -428,14 +428,14 @@ void canFendtEngageReceiver10Hz( void* z ) { // Fendt engage bus
       }
       if( rxId == engageMessage ){
         if( rxBuf[0] == 0x0F && rxBuf[1] == 0x60 && rxBuf[2] == 0x01 ){
-          if( machine.steeringEnabled == false ) {
+          if( canEngageMessage == false ) { // engage on the off to on change only, in case the tractor repeats this message
             machine.steeringEnabled = true;
             AogToMachineEngagedMismatch = true;
+            safety.AOGEnableAutosteerTimeout = false;
+            machine.disengagedBySteeringWheel = false;
+            machine.disengageInput = false;
           }
-          safety.AOGEnableAutosteerTimeout = false;
           canEngageMessage = true;
-          machine.disengagedBySteeringWheel = false;
-          machine.disengageInput = false;
         } else if( rxBuf[0] == 0x0F && rxBuf[1] == 0x60 && rxBuf[2] == 0x40 ){
           machine.steeringEnabled = false;
           canEngageMessage = false;
