@@ -100,6 +100,12 @@ class SteerState {
       softwareToHardwareMismatch = true;
     }
     if( var == true ){
+      if( softwareEngageState == true && autosteerSafetyLock == false ){
+        autosteerSafetyLock = true; // software is engaged while hardware disengage is active
+        if( hardwareEngageState == false ){
+          engageActivityMillis = millis(); // software has not seen `on`, send it for 300 millis so software sees the change to `off`
+        }
+      }
       hardwareEngageState = false;
     }
     disengageState = var;

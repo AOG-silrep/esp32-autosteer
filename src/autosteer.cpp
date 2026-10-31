@@ -503,6 +503,7 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
   int32_t dutyAverage = 0;
   time_t lastSwitchChangeMillis = millis();
   time_t disengageActivityMillis = millis();
+  bool encoderDisengage = false;
   uint32_t deereDutyMicrosTimeout = esp_timer_get_time();
 
   switchState = digitalRead( ( uint8_t )steerConfig.gpioSteerswitch ); // initialize switch state on startup
@@ -556,10 +557,16 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
       if( millis() - disengageActivityMillis < steerConfig.disengageFrameMillis ) {
         if( ( machine.handwheelPulseCount / 2 ) >= steerConfig.disengageFramePulses ) { // divide by two to compensate for LOW and HIGH
           machine.handwheelPulseCount = 0;
-          steerState.setDisengage( true );
+          encoderDisengage = true;
           machine.disengagedBySteeringWheel = true;
-        } else steerState.setDisengage( false );
+        }
       } else machine.handwheelPulseCount = 0;
+      // handwheel turning slower than the disengage threshold, one pulse per frameMillis / framePulses, counts as stopped
+      uint32_t encoderReleaseMillis = steerConfig.disengageFrameMillis / max( steerConfig.disengageFramePulses, ( uint16_t )1 );
+      if( millis() - machine.lastDisengageMillis > encoderReleaseMillis ){
+        encoderDisengage = false;
+      }
+      steerState.setDisengage( encoderDisengage );
     }
     else if( steerConfig.disengageSwitchType == SteerConfig::DisengageSwitchType::JDVariableDuty ){
       int32_t elapse = onTime - offTime;
@@ -584,11 +591,13 @@ void autosteerSwitchesWorker1000Hz( void* z ) {
       machine.steerMotorCurrent = max( analogRead( 34 ), analogRead( 35 ) );
       if( machine.steerMotorCurrent > steerConfig.maxSteerCurrent ){
         if( millis() - disengageActivityMillis > 50 ){
+          steerState.setDisengage( true );
           machine.disengagedBySteeringWheel = true;
         }
         machine.lastDisengageMillis = millis();
       } else {
         disengageActivityMillis = millis();
+        steerState.setDisengage( false );
       }
     }
     else if( steerConfig.disengageSwitchType == SteerConfig::DisengageSwitchType::ExternalLogicInput ){
